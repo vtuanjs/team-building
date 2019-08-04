@@ -20,11 +20,6 @@ const checkProjectManager = (user, projectId) => {
         item.role === "manager"))
 }
 
-const checkProjectManager = (user, projectId) => {
-    return user.projects.some(item => (item.id.equals(projectId) &&
-        item.role === "manager"))
-}
-
 const checkPermit = (...checks) => {
     return (next) => {
         // Call next if any check passes:

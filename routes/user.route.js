@@ -20,7 +20,7 @@ router.post('/admin/block-by-ids',
         //Fake company id
         checkPermit([checkAdmin(user), checkCompanyManager(user, companyId)])(next)
     },
-    userController.adminBlockByIds
+    userController.blockByIds
 )
 
 router.put('/update',
