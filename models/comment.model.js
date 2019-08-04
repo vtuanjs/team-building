@@ -4,9 +4,9 @@ const Schema = mongoose.Schema
 const CommentSchema = new Schema({
     body: {type: String, default: ""},
     createdOn: { type: Date, default: Date.now },
+    isHidden: {type: Number, default: 0},
     author: { type: Schema.Types.ObjectId, ref: "User" },
     commentOn: { type: Schema.Types.ObjectId, ref: 'Job' },
-    lastUpdated: { type: Date, default: Date.now }
-})
+}, {timestamps: true})
 const Comment = mongoose.model("Comment", CommentSchema)
 module.exports = Comment 

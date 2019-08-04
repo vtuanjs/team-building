@@ -6,8 +6,8 @@ const makeUserBecomeAdmin = async (userId) => {
         if (!foundUser) {
             throw 'Can not find user with ID: ' + userId
         }
-        await foundUser.update({
-            permission: 2,
+        await foundUser.updateOne({
+            permission: "admin",
             isBanned: 0,
             active: 1
         })
@@ -17,4 +17,4 @@ const makeUserBecomeAdmin = async (userId) => {
     }
 }
 
-makeUserBecomeAdmin('5d36c7dcaa96f70b6d7cd211')
+makeUserBecomeAdmin('5d4249f64c53d714f1911003')

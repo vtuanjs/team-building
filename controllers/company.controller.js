@@ -1,64 +1,85 @@
-const userMiddleware = require('../middlewares/user.middleware')
 const Company = require('../models/company.model')
 
-const add = async (company, tokenKey) => {
-    let { name, address, emailDomain } = company
-    email = email.toLowerCase()
+const add = async (req, res, next) => {
+    const { name, address, emailDomain } = req.body
     try {
-        let signedInUser = await userMiddleware.verifyJWT(tokenKey)
-        if (!userMiddleware.isAdmin(signedInUser)) {
-            throw "Only admin can create company"
-        }
         let newCompany = await Company.create({
             name, address,
             emailDomain
         })
-        return newCompany
+        res.json({
+            result: "ok",
+            message: "Create company successfully",
+            data: newCompany
+        })
     } catch (error) {
-        throw error
+        next(error)
     }
 }
 
-const findByUserId = (userId) => {
-    return Company.findOne({members: {$in: [userId]}}).select("name address createdOn" )
+const findByUserId = (req, res, next) => {
+    let { userId } = req.params
+    return Company.findOne({ members: { $in: [userId] } },
+        "name address createdAt",
+        (error, doc) => {
+            if (error) return next(error)
+            if (!doc) return next("Can not find this company by user")
+            return res.json({
+                result: "ok",
+                message: "Find company by user successfully",
+                data: doc
+            })
+        }
+    )
 }
 
-const showMembersById = async (id) => {
-    try {
-        let company = await Company.findById(id).select("members")
-        if (!company) throw `Can not find company with Id=${id}`
-        return company
-    } catch (error) {
-        throw error
-    }
+const showMembersById = (req, res, next) => {
+    let { companyId } = req.params
+    return Company.findById(companyId, (error, doc) => {
+        if (error) return next(error)
+        if (!doc) return next("Wrong company id")
+        return res.json({
+            result: "ok",
+            message: "Show list of member in this company successfully",
+            data: doc
+        })
+    })
 }
 
-const update = async (id, updatedCompany, tokenKey) => {
-    try {
-        let signedInUser = await userMiddleware.verifyJWT(tokenKey)
-        let { name, address } = updatedCompany
-        if (!userMiddleware.isAdmin(signedInUser) ||
-            (!userMiddleware.isCompanyManager(signedInUser, id))) {
-            throw "Only manager can do this action"
-        }
-        let query = {
-            ...(name && { name }),
-            ...(address && { address }),
-            lastUpdated: Date.now()
-        }
-        let company = await Company.findOneAndUpdate({ _id: id }, query, { new: true })
-        if (!company) {
-            throw `Can not find company`
-        }
-        return company
-    } catch (error) {
-        throw error
+const update = (req, res, next) => {
+    let { companyId, name, address } = req.body
+    let query = {
+        ...(name && { name }),
+        ...(address && { address }),
     }
+    return Company.findOneAndUpdate(
+        { _id: companyId },
+        query,
+        { new: true },
+        (err, doc) => {
+            if (err) return next(err)
+            if (!doc) return next("Can not find company")
+            return res.json({
+                result: "ok",
+                message: "Update company success",
+                data: doc
+            })
+        }
+    )
+}
+
+const getCompanyIdFromUserId = async ( userId, next ) => {
+    let company = await Company.findOne({members: { $in: [userId]}}, (err, doc) => {
+        if (err) return next(err)
+        if (!doc) return next("Can not find company: " + err)
+    })
+    return company._id
 }
 
 module.exports = {
     add,
     showMembersById,
     update,
-    findByUserId
+    findByUserId,
+    getCompanyIdFromUserId
 }

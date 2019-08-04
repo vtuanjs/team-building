@@ -1,51 +1,91 @@
+const bcrypt = require('bcrypt')
 const User = require('../models/user.model')
 const Company = require('../models/company.model')
-const userMiddleware = require('../middlewares/user.middleware')
-const bcrypt = require('bcrypt')
 
-const create = async (name, email, password) => {
-    email = email.toLowerCase()
+const addToCompanyMemberByEmailDomain = (user, emailDomain) => {
+    Company.findOne({ emailDomain }, (error, company) => {
+        if (company) {
+            Promise.all([
+                user.updateOne({ company: { ...user.company, id: company._id } }),
+                company.updateOne({ $push: { members: user._id } })
+            ])
+        }
+        return
+    })
+}
+
+const create = async (req, res, next) => {
+    const { name, email, password } = req.body
+    const emailDomain = email.toLowerCase().split("@")[1]
     try {
         const encryptedPassword = await bcrypt.hash(password, 10)//saltRounds = 10
-        const newUser = await User.create({
+        let newUser = await User.create({
             name,
             email,
             password: encryptedPassword
         })
-        const emailDomain = email.split("@")[1]
-        const company = await Company.findOne({emailDomain})
-        if (company) {
-            Promise.all([
-                newUser.update({company: {...newUser.company, id: company._id}}),
-                company.update({$push: {members: newUser._id}})
-            ])
-        }
+        addToCompanyMemberByEmailDomain(newUser, emailDomain)
+        res.json({
+            result: 'ok',
+            message: 'Create user successfully!',
+        })
     } catch (error) {
-        if (error.code === 11000) throw "Email already exists"
-        throw error
+        if (error.code === 11000) error = "Email already exists"
+        res.status(422)
+        next(error)
     }
 }
 
-const blockByIds = async (userIds, tokenKey) => {
-    let arrayUserIds = userIds.split(',').map(item => {
+const update = async (req, res, next) => {
+    let { name, gender, phone, address, password, oldPassword} = req.body
+    try {
+        let user = res.locals.user
+        if (password){
+            let checkPassword = await bcrypt.compare(oldPassword, user.password)
+            if (!checkPassword) return next("Old password wrong")
+            else {
+                password = await bcrypt.hash(password, 10)
+            }
+        }
+        let query = {
+            ...(name && { name }),
+            ...(gender && { gender }),
+            ...(phone && { phone }),
+            ...(address && { address }),
+            ...(password && { password }),
+        }
+        await user.updateOne(query, {new: true})
+        res.json({
+            result: 'ok',
+            message: 'Update user succesfully!',
+        })
+    } catch (error) {
+        next("Update error: " + error)
+    }
+}
+
+const blockByIds = async (req, res, next) => {
+    const { userIds } = req.body
+    const { user } = res.locals
+    const arrayUserIds = userIds.split(',').map(item => {
         return item.trim()
     })
     try {
-        let signedInUser = await verifyJWT(tokenKey)
-        if (userMiddleware.isAdmin(signedInUser)) {
-            User.updateMany({ _id: { $in: arrayUserIds } }, { isBanned: 1 })
+        let raw
+        if (user.role === "admin"){
+            raw = await User.updateMany({ _id: { $in: arrayUserIds } }, { isBanned: 1 })
         } else {
-            if (signedInUser.company.userPermission === 1) {
-                User.updateMany({ _id: { $in: arrayUserIds }, company: { id: signedInUser.company.id } }, { isBanned: 1 })
-            } else {
-                throw "You are not an admin"
-            }
+            raw = await User.updateMany({ _id: { $in: arrayUserIds }, "company.id" : user.company.id }, { isBanned: 1 })
         }
-    } catch (error) {
-        throw error
+        res.json({
+            result: "ok",
+            message: "Number of users blocked: " + raw.nModified
+        })
+    } catch(error){
+        next(error)
     }
 }
 
 module.exports = {
-    create, blockByIds
+    create, update, blockByIds
 }

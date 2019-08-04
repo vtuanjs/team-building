@@ -1,55 +1,31 @@
 const express = require('express')
 const router = express.Router()
 const userController = require('../controllers/user.controller')
+const authentication = require('../middlewares/auth.middleware')
+const {
+    checkAdmin, checkCompanyMember, checkCompanyManager,
+    checkProjectMember, checkProjectManager, checkPermit
+} = require('../middlewares/permistion.middleware')
 
-router.post('/register-user', async (req, res) => {
-    let { name, email, password } = req.body
-    try {
-        await userController.create(name, email, password)
-        res.json({
-            result: 'ok',
-            message: 'Register user successfully!',
-        })
-    } catch (error) {
-        res.json({
-            result: 'failed',
-            message: `Register user failed. Error: ${error}`
-        })
-    }
-})
+//Body: name, email, password
+router.post('/register-user', userController.create)
 
-router.post('/admin/block-by-ids', async (req, res) => {
-    let tokenKey = req.headers['x-access-token']
-    let { userIds } = req.body
-    try {
-        await userController.blockByIds(userIds, tokenKey)
-        res.json({
-            result: 'ok',
-            message: 'Block user successfully!'
-        })
-    } catch (error) {
-        res.json({
-            result: 'failed',
-            message: `Error block user: ${error}`
-        })
-    }
-})
+// //Header: x-access-token
+// //Body: userIds
+router.post('/admin/block-by-ids',
+    authentication.required,
+    (req, res, next) => {
+        const { user } = res.locals
+        const companyId = user.company.id
+        //Fake company id
+        checkPermit([checkAdmin(user), checkCompanyManager(user, companyId)])(next)
+    },
+    userController.adminBlockByIds
+)
 
-// router.delete('/admin/delete-by-ids', async (req, res) => {
-//     let tokenKey = req.headers['x-access-token']
-//     let { userIds } = req.body
-//     try {
-//         await userController.deleteByIds(userIds, tokenKey)
-//         res.json({
-//             result: 'ok',
-//             message: 'Delete user successfully!'
-//         })
-//     } catch (error) {
-//         res.json({
-//             result: 'failed',
-//             message: `Error delete user: ${error}`
-//         })
-//     }
-// })
+router.put('/update',
+    authentication.required,
+    userController.update
+)
 
 module.exports = router

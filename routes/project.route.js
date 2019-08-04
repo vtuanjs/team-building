@@ -1,59 +1,62 @@
 const express = require('express')
 const router = express.Router()
 const projectController = require('../controllers/project.controller')
+const authentication = require('../middlewares/auth.middleware')
+const {
+    checkAdmin, checkCompanyMember, checkCompanyManager,
+    checkProjectMember, checkProjectManager, checkPermit
+} = require('../middlewares/permistion.middleware')
 
-router.post('/add', async (req, res) => {
-    let tokenKey = req.headers['x-access-token']
-    let { title, description, companyId } = req.body
-    try {
-        let newProject = await projectController.add({title, description}, companyId, tokenKey)
-        res.json({
-            result: 'ok',
-            message: 'Add new project successfully!',
-            data: newProject
-        })
-    } catch (error) {
-        res.json({
-            result: 'failed',
-            message: `Add new project failed. Error: ${error}`
-        })
-    }
-})
+// const getCompanyIdFromProjectId()
 
-router.get('/find-all-in-company/:companyId', async (req, res) => {
-    let tokenKey = req.headers['x-access-token']
-    let { companyId } = req.params
-    try {
-        let projects = await projectController.findAllInCompany(companyId, tokenKey)
-        res.json({
-            result: 'ok',
-            message: `Find all projects successfully!`,
-            data: projects
-        })
-    } catch (error) {
-        res.json({
-            result: 'failed',
-            message: `Error: ${error}`
-        })
-    }
-})
+//Header: x-access-token-key
+//Body: title, description, companyId
+router.post('/add',
+    authentication.required,
+    (req, res, next) => {
+        let user = res.locals.user
+        let { companyId } = req.body
+        checkPermit([
+            checkAdmin(user),
+            checkCompanyManager(user, companyId)
+        ])(next)
+    },
+    projectController.add)
 
-router.put('/update', async (req, res) => {
-    let tokenKey = req.headers['x-access-token']
-    let { id, title, description } = req.body
-    try {
-        let projects = await projectController.update(id, {title, description}, tokenKey)
-        res.json({
-            result: 'ok',
-            message: `Update projects successfully!`,
-            data: projects
-        })
-    } catch (error) {
-        res.json({
-            result: 'failed',
-            message: `Error: ${error}`
-        })
-    }
-})
+//Header: x-access-token-key
+//Query: companyId
+router.get('/find-all-in-company/',
+    authentication.required,
+    (req, res, next) => {
+        let user = res.locals.user
+        let { companyId } = req.body
+        checkPermit([checkCompanyMember(user, companyId)])(next)
+    },
+    projectController.findAllInCompany
+)
+
+// Header: x-access-token-key
+// Body: projectId, title, description, companyId
+router.put('/update',
+    authentication.required,
+    (req, res, next) => {
+        let { user } = res.locals
+        let { projectId } = req.body
+        let companyId = projectController.getCompanyIdFromProjectId(projectId, next)
+        checkPermit([checkCompanyManager(user, companyId)])(next)
+    },
+    projectController.update
+)
+
+router.get('/get-list-users/:projectId',
+    authentication.required,
+    (req, res, next) => {
+        let { user } = res.locals
+        let { projectId } = req.params
+        let companyId = projectController.getCompanyIdFromProjectId(projectId, next)
+        checkPermit([checkCompanyManager(user, companyId)])(next)
+    },
+    projectController.getListUsersByProjectId
+)
 
 module.exports = router

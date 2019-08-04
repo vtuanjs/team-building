@@ -2,33 +2,36 @@ const mongoose = require('../database/database')
 const Schema = mongoose.Schema
 
 const UserSchema = new Schema({
-    email: { type: String, match: /^([\w-\.]+@([\w-]+\.)+[\w-]{2,4})?$/, unique: true, required: true },
+    email: { type: String, lowercase: true, match: /^([\w-\.]+@([\w-]+\.)+[\w-]{2,4})?$/, unique: true, required: true },
     name: { type: String, default: ""},
+    gender: { type: String, enum: ["male", "female", "N/A"], default: "N/A"},
+    phone: { type: String, default: "N/A"},
+    address: { type: String, default: "N/A"},
     password: { type: String, required: true },
-    permission: { type: Number, default: 0 }, //0: user, 1: moderator, 2: admin
+    role: { type: String, default: "employee" }, //admin, employee
     isActive: { type: Number, default: 1},
     isBanned: { type: Number, default: 0 }, //1: banned
-    createdOn: { type: Date, default: Date.now },
-    lastUpdated: { type: Date, default: Date.now },
     company: {
         id: { type: Schema.Types.ObjectId, ref: "Company" },
-        userPermission: { type: Number, default: 0} //0: user, 1: manager
+        role: { type: String, default: "employee" } //manager, employee
     },
     team: {
         id: { type: Schema.Types.ObjectId, ref: "Team" },
-        userPermission: { type: Number, default: 0}
+        role: { type: String, default: "employee"}
     },
     projects: [{
+        _id : false, 
         id: { type: Schema.Types.ObjectId, ref: "Project" },
-        userPermission: { type: Number, default: 0}
+        role: { type: String, default: "employee"}
     }],
     plants: [{
+        _id : false, 
         id: { type: Schema.Types.ObjectId, ref: "Plant" },
-        userPermission: { type: Number, default: 0}
+        role: { type: String, default: "employee"}
     }],
     jobs: [{ type: Schema.Types.ObjectId, ref: "Job" }],
     comments: [{ type: Schema.Types.ObjectId, ref: "Comment" }]
-})
+}, {timestamps: true})
 
 const User = mongoose.model('User', UserSchema)
 module.exports = User

@@ -4,9 +4,8 @@ const Schema = mongoose.Schema
 const CompanySchema = new Schema({
     name: { type: String, required: true },
     address: { type: String, default: "" },
-    emailDomain: { type: String, match: /^(([\w-]+\.)+[\w-]{2,4})?$/, unique: true, required: true },
-    createdOn: { type: Date, default: Date.now },
-    lastUpdated: { type: Date, default: Date.now },
+    emailDomain: { type: String, lowercase: true, match: /^(([\w-]+\.)+[\w-]{2,4})?$/, unique: true, required: true },
+    isHidden: {type: Number, default: 0},
     projects: [{ type: Schema.Types.ObjectId, ref: "Project" }],
     members: [{ type: Schema.Types.ObjectId, ref: "User" }],
     limited: {
@@ -14,7 +13,7 @@ const CompanySchema = new Schema({
         plants: { type: Number, default: 5 },
         jobs: { type: Number, default: 10 }
     }
-})
+}, {timestamps: true})
 
 const Company = mongoose.model("Company", CompanySchema)
 module.exports = Company

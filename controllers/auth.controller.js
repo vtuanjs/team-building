@@ -3,7 +3,8 @@ const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
 const secretString = "secret string"
 
-module.exports.login = async (email, password) => {
+module.exports.login = async (req, res, next) => {
+    const { email, password } = req.body
     try {
         let foundUser = await User.findOne({ email: email.trim() }).exec()
         if (!foundUser) {
@@ -14,22 +15,27 @@ module.exports.login = async (email, password) => {
         }
         let encryptedPassword = foundUser.password
         let checkPassword = await bcrypt.compare(password, encryptedPassword)
-        if (checkPassword === true) {
+        if (checkPassword) {
             let jsonObject = {
                 id: foundUser._id
             }
-            let tokenKey = await jwt.sign(jsonObject,
-                secretString, {
-                    expiresIn: 86400 // Expire in 24h
-                })
+            let tokenKey = await jwt.sign(
+                jsonObject,
+                secretString,
+                { expiresIn: 86400 }
+            )
             //Return user infomation with token key
             let userObject = foundUser.toObject()
             userObject.tokenKey = tokenKey
-            return userObject
+            return res.json({
+                result: "ok",
+                message: "Login user successfully",
+                data: userObject
+            })
         } else {
-            throw 'Wrong user or password'
+            return next("Wrong user or password")
         }
     } catch (error) {
-        throw error
+        next(error)
     }
 }
