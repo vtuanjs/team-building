@@ -3,8 +3,8 @@ const router = express.Router()
 const userController = require('../controllers/user.controller')
 const authentication = require('../middlewares/auth.middleware')
 const {
-    checkAdmin, checkCompanyMember, checkCompanyManager,
-    checkProjectMember, checkProjectManager, checkPermit
+    isAdmin, isCompanyMember, isCompanyManager,
+    isProjectMember, isProjectManager, checkPermit
 } = require('../middlewares/permistion.middleware')
 
 //Body: name, email, password
@@ -18,7 +18,10 @@ router.post('/admin/block-by-ids',
         const { user } = res.locals
         const companyId = user.company.id
         //Fake company id
-        checkPermit([checkAdmin(user), checkCompanyManager(user, companyId)])(next)
+        checkPermit(
+            isAdmin(user),
+            isCompanyManager(user, companyId)
+        )(next)
     },
     userController.blockByIds
 )

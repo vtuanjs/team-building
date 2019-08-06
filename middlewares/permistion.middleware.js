@@ -1,21 +1,21 @@
-const checkAdmin = (user) => {
+const isAdmin = (user) => {
     return user.role === "admin"
 }
 
-const checkCompanyMember = (user, companyId) => {
+const isCompanyMember = (user, companyId) => {
     return user.company.id && user.company.id.equals(companyId)
 }
 
-const checkCompanyManager = (user, companyId) => {
+const isCompanyManager = (user, companyId) => {
     return user.company.id && user.company.id.equals(companyId) &&
         user.company.role === "manager"
 }
 
-const checkProjectMember = (user, projectId) => {
+const isProjectMember = (user, projectId) => {
     return user.projects.some(item => (item.id.equals(projectId)))
 }
 
-const checkProjectManager = (user, projectId) => {
+const isProjectManager = (user, projectId) => {
     return user.projects.some(item => (item.id.equals(projectId) &&
         item.role === "manager"))
 }
@@ -24,12 +24,12 @@ const checkPermit = (...checks) => {
     return (next) => {
         // Call next if any check passes:
         for (let i = 0; i < checks.length; i++) {
-            if (checks[i]) return next();
+            if (checks[i]) return next()
         }
-        next("You don't have authorization to do this action")
+        return next("You don't have authorization to do this action")
     }
 }
 module.exports = {
-    checkAdmin, checkCompanyMember, checkCompanyManager, 
-    checkProjectMember, checkProjectManager, checkPermit
+    isAdmin, isCompanyMember, isCompanyManager, 
+    isProjectMember, isProjectManager, checkPermit
 }

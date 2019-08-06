@@ -27,7 +27,7 @@ const create = async (req, res, next) => {
         addToCompanyMemberByEmailDomain(newUser, emailDomain)
         res.json({
             result: 'ok',
-            message: 'Create user successfully!',
+            message: `Create user ${newUser.name} successfully!`,
         })
     } catch (error) {
         if (error.code === 11000) error = "Email already exists"
@@ -37,10 +37,10 @@ const create = async (req, res, next) => {
 }
 
 const update = async (req, res, next) => {
-    let { name, gender, phone, address, password, oldPassword} = req.body
+    let { name, gender, phone, address, password, oldPassword } = req.body
     try {
         let user = res.locals.user
-        if (password){
+        if (password) {
             let checkPassword = await bcrypt.compare(oldPassword, user.password)
             if (!checkPassword) return next("Old password wrong")
             else {
@@ -54,10 +54,10 @@ const update = async (req, res, next) => {
             ...(address && { address }),
             ...(password && { password }),
         }
-        await user.updateOne(query, {new: true})
+        await user.updateOne(query, { new: true })
         res.json({
             result: 'ok',
-            message: 'Update user succesfully!',
+            message: `Update user with ID: ${user._id} succesfully!`,
         })
     } catch (error) {
         next("Update error: " + error)
@@ -72,16 +72,20 @@ const blockByIds = async (req, res, next) => {
     })
     try {
         let raw
-        if (user.role === "admin"){
-            raw = await User.updateMany({ _id: { $in: arrayUserIds } }, { isBanned: 1 })
+        if (user.role === "admin") {
+            raw = await User.updateMany(
+                { _id: { $in: arrayUserIds } },
+                { isBanned: 1 },
+                { upsert: true },
+            )
         } else {
-            raw = await User.updateMany({ _id: { $in: arrayUserIds }, "company.id" : user.company.id }, { isBanned: 1 })
+            raw = await User.updateMany({ _id: { $in: arrayUserIds }, "company.id": user.company.id }, { isBanned: 1 })
         }
         res.json({
             result: "ok",
             message: "Number of users blocked: " + raw.nModified
         })
-    } catch(error){
+    } catch (error) {
         next(error)
     }
 }

@@ -3,8 +3,8 @@ const router = express.Router()
 const projectController = require('../controllers/project.controller')
 const authentication = require('../middlewares/auth.middleware')
 const {
-    checkAdmin, checkCompanyMember, checkCompanyManager,
-    checkProjectMember, checkProjectManager, checkPermit
+    isAdmin, isCompanyMember, isCompanyManager,
+    isProjectMember, isProjectManager, checkPermit
 } = require('../middlewares/permistion.middleware')
 
 // const getCompanyIdFromProjectId()
@@ -16,10 +16,10 @@ router.post('/add',
     (req, res, next) => {
         let user = res.locals.user
         let { companyId } = req.body
-        checkPermit([
-            checkAdmin(user),
-            checkCompanyManager(user, companyId)
-        ])(next)
+        checkPermit(
+            isAdmin(user),
+            isCompanyManager(user, companyId)
+        )(next)
     },
     projectController.add)
 
@@ -30,7 +30,9 @@ router.get('/find-all-in-company/',
     (req, res, next) => {
         let user = res.locals.user
         let { companyId } = req.body
-        checkPermit([checkCompanyMember(user, companyId)])(next)
+        checkPermit(
+            isCompanyMember(user, companyId)
+        )(next)
     },
     projectController.findAllInCompany
 )
@@ -43,7 +45,9 @@ router.put('/update',
         let { user } = res.locals
         let { projectId } = req.body
         let companyId = projectController.getCompanyIdFromProjectId(projectId, next)
-        checkPermit([checkCompanyManager(user, companyId)])(next)
+        checkPermit(
+            isCompanyManager(user, companyId)
+        )(next)
     },
     projectController.update
 )
@@ -54,7 +58,9 @@ router.get('/get-list-users/:projectId',
         let { user } = res.locals
         let { projectId } = req.params
         let companyId = projectController.getCompanyIdFromProjectId(projectId, next)
-        checkPermit([checkCompanyManager(user, companyId)])(next)
+        checkPermit(
+            isCompanyManager(user, companyId)
+        )(next)
     },
     projectController.getListUsersByProjectId
 )

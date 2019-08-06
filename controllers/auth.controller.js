@@ -1,4 +1,5 @@
 const User = require('../models/user.model')
+const Company = require('../models/company.model')
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
 const secretString = "secret string"
@@ -12,6 +13,12 @@ module.exports.login = async (req, res, next) => {
         }
         if (foundUser.isBanned === 1) {
             throw "User is banned. Please contact your website admin"
+        }
+        if (foundUser.role != "admin"){
+            let company = await Company.findById(foundUser.company.id)
+            if (company.isBanned){
+                throw "Your company is banned. Please contact your website admin"
+            }
         }
         let encryptedPassword = foundUser.password
         let checkPassword = await bcrypt.compare(password, encryptedPassword)
