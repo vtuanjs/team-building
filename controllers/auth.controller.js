@@ -16,7 +16,7 @@ module.exports.login = async (req, res, next) => {
         }
         if (foundUser.role != "admin"){
             let company = await Company.findById(foundUser.company.id)
-            if (company.isBanned){
+            if (company && company.isBanned){
                 throw "Your company is banned. Please contact your website admin"
             }
         }

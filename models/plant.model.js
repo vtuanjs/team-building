@@ -5,6 +5,7 @@ const PlantSchema = new Schema({
     title: { type: String, required: true },
     description: {type: String, default: ""},
     isHidden: {type: Number, default: 0},
+    isClosed: {type: Number, default: 0},
     members: [{ type: Schema.Types.ObjectId, ref: "User" }],
     project: { type: Schema.Types.ObjectId, ref: "Project" },
     jobs: [{ type: Schema.Types.ObjectId, ref: "Job" }]

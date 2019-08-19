@@ -5,7 +5,7 @@ const CompanySchema = new Schema({
     name: { type: String, required: true },
     address: { type: String, default: "" },
     emailDomain: { type: String, lowercase: true, match: /^(([\w-]+\.)+[\w-]{2,4})?$/, unique: true, required: true },
-    isBanned: {type: Number, default: 0},
+    isClosed: {type: Number, default: 0},
     projects: [{ type: Schema.Types.ObjectId, ref: "Project" }],
     members: [{ type: Schema.Types.ObjectId, ref: "User" }],
     limited: {

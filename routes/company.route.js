@@ -11,8 +11,12 @@ const {
 router.post('/add',
     authentication.required,
     (req, res, next) => {
-        let user = res.locals.user
-        checkPermit(isAdmin(user))(next)
+        const user = req.user
+        const permit = checkPermit(
+            isAdmin(user)
+        )
+        if (permit) return next()
+        else return next("You don't have authorization to do this action!")
     },
     companyController.add
 )
@@ -22,14 +26,31 @@ router.post('/add',
 router.put('/update',
     authentication.required,
     (req, res, next) => {
-        let user = res.locals.user
-        let { companyId } = req.body
-        checkPermit(
+        const user = req.user
+        const { companyId } = req.body
+        const permit = checkPermit(
             isAdmin(user),
             isCompanyManager(user, companyId)
-        )(next)
+        )
+        if (permit) return next()
+        else return next("You don't have authorization to do this action!")
     },
     companyController.update
+)
+
+// Header: x-access-token
+// Params: companyId
+router.delete('/delete-by-id/:companyId',
+    authentication.required,
+    (req, res, next) => {
+        const user = req.user
+        const permit = checkPermit(
+            isAdmin(user),
+        )
+        if (permit) return next()
+        else return next("You don't have authorization to do this action!")
+    },
+    companyController.deleteById
 )
 
 // Header: x-access-token
@@ -37,8 +58,10 @@ router.put('/update',
 router.post('/admin/block-by-id/:companyId',
     authentication.required,
     (req, res, next) => {
-        let user = res.locals.user
-        checkPermit(isAdmin(user))(next)
+        const user = req.user
+        const permit = checkPermit(isAdmin(user))
+        if (permit) return next()
+        else return next("You don't have authorization to do this action!")
     },
     companyController.blockCompanyById
 )
@@ -48,10 +71,12 @@ router.post('/admin/block-by-id/:companyId',
 router.post('/admin/unlock-by-id/:companyId',
     authentication.required,
     (req, res, next) => {
-        let user = res.locals.user
-        checkPermit(
+        const user = req.user
+        const permit = checkPermit(
             isAdmin(user)
-        )(next)
+        )
+        if (permit) return next()
+        else return next("You don't have authorization to do this action!")
     },
     companyController.unlockCompanyById
 )
@@ -61,19 +86,71 @@ router.get('/find-by-user-id/:userId',
     companyController.findByUserId
 )
 
+// Params: companyId
+router.get('/show-company',
+    companyController.showCompany
+)
+
 // Header: x-access-token
 // Params: companyId
 router.get('/get-detail-by-id/:companyId',
     authentication.required,
     (req, res, next) => {
-        let user = res.locals.user
-        let { companyId } = req.params
-        checkPermit(
+        const user = req.user
+        const { companyId } = req.params
+        const permit = checkPermit(
             isAdmin(user),
             isCompanyMember(user, companyId)
-        )(next)
+        )
+        if (permit) return next()
+        else return next("You don't have authorization to do this action!")
     },
     companyController.getDetailById
+)
+
+router.post('/add-member',
+    authentication.required,
+    (req, res, next) => {
+        const user = req.user
+        const { companyId } = req.body
+        const permit = checkPermit(
+            isAdmin(user),
+            isCompanyMember(user, companyId)
+        )
+        if (permit) return next()
+        else return next("You don't have authorization to do this action!")
+    },
+    companyController.addMember
+)
+
+router.post('/make-member-become-manager',
+    authentication.required,
+    (req, res, next) => {
+        const user = req.user
+        const { companyId } = req.body
+        const permit = checkPermit(
+            isAdmin(user),
+            isCompanyMember(user, companyId)
+        )
+        if (permit) return next()
+        else return next("You don't have authorization to do this action!")
+    },
+    companyController.makeMemberBecomeManager
+)
+
+router.post('/make-manager-become-member',
+    authentication.required,
+    (req, res, next) => {
+        const user = req.user
+        const { companyId } = req.body
+        const permit = checkPermit(
+            isAdmin(user),
+            isCompanyMember(user, companyId)
+        )
+        if (permit) return next()
+        else return next("You don't have authorization to do this action!")
+    },
+    companyController.makeManagerBecomeMember
 )
 
 module.exports = router

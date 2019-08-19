@@ -15,21 +15,19 @@ const isProjectMember = (user, projectId) => {
     return user.projects.some(item => (item.id.equals(projectId)))
 }
 
-const isProjectManager = (user, projectId) => {
+const isProjectAuthor = (user, projectId) => {
     return user.projects.some(item => (item.id.equals(projectId) &&
-        item.role === "manager"))
+        item.role === "author"))
 }
 
 const checkPermit = (...checks) => {
-    return (next) => {
-        // Call next if any check passes:
-        for (let i = 0; i < checks.length; i++) {
-            if (checks[i]) return next()
-        }
-        return next("You don't have authorization to do this action")
+    let permit = 0
+    for (let i = 0; i < checks.length; i++) {
+        if (checks[i]) permit = 1
     }
+    return permit
 }
 module.exports = {
-    isAdmin, isCompanyMember, isCompanyManager, 
-    isProjectMember, isProjectManager, checkPermit
+    isAdmin, isCompanyMember, isCompanyManager,
+    isProjectMember, isProjectAuthor, checkPermit
 }

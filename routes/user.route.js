@@ -15,7 +15,7 @@ router.post('/register-user', userController.create)
 router.post('/admin/block-by-ids',
     authentication.required,
     (req, res, next) => {
-        const { user } = res.locals
+        const { user } = req
         const companyId = user.company.id
         //Fake company id
         checkPermit(
@@ -26,9 +26,27 @@ router.post('/admin/block-by-ids',
     userController.blockByIds
 )
 
+router.post('/admin/unlock-by-id/:userId',
+    authentication.required,
+    (req, res, next) => {
+        const { user } = req
+        const companyId = user.company.id
+        //Fake company id
+        checkPermit(
+            isAdmin(user),
+            isCompanyManager(user, companyId)
+        )(next)
+    },
+    userController.unlockById
+)
+
 router.put('/update',
     authentication.required,
     userController.update
 )
+
+router.get('/get-detail/:userId', userController.getDetailById)
+
+router.get('/get-all-user', userController.getAllUser)
 
 module.exports = router

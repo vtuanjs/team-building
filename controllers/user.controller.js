@@ -19,7 +19,7 @@ const create = async (req, res, next) => {
     const emailDomain = email.toLowerCase().split("@")[1]
     try {
         const encryptedPassword = await bcrypt.hash(password, 10)//saltRounds = 10
-        let newUser = await User.create({
+        const newUser = await User.create({
             name,
             email,
             password: encryptedPassword
@@ -37,17 +37,17 @@ const create = async (req, res, next) => {
 }
 
 const update = async (req, res, next) => {
-    let { name, gender, phone, address, password, oldPassword } = req.body
+    const { name, gender, phone, address, password, oldPassword } = req.body
     try {
-        let user = res.locals.user
+        const user = req.user
         if (password) {
-            let checkPassword = await bcrypt.compare(oldPassword, user.password)
+            const checkPassword = await bcrypt.compare(oldPassword, user.password)
             if (!checkPassword) return next("Old password wrong")
             else {
                 password = await bcrypt.hash(password, 10)
             }
         }
-        let query = {
+        const query = {
             ...(name && { name }),
             ...(gender && { gender }),
             ...(phone && { phone }),
@@ -66,30 +66,96 @@ const update = async (req, res, next) => {
 
 const blockByIds = async (req, res, next) => {
     const { userIds } = req.body
-    const { user } = res.locals
+    const { user } = req
     const arrayUserIds = userIds.split(',').map(item => {
         return item.trim()
     })
     try {
-        let raw
+        if (arrayUserIds.indexOf(user._id) > -1) {
+            throw "Can not block your self"
+        }
+        const userAdmin = await User.findOne({ role: "admin" })
+        if (arrayUserIds.indexOf(userAdmin._id) > -1) {
+            throw "Block admin user? Are you kidding me?"
+        }
         if (user.role === "admin") {
-            raw = await User.updateMany(
+            await User.updateMany(
                 { _id: { $in: arrayUserIds } },
                 { isBanned: 1 },
                 { upsert: true },
             )
         } else {
-            raw = await User.updateMany({ _id: { $in: arrayUserIds }, "company.id": user.company.id }, { isBanned: 1 })
+            await User.updateMany({ _id: { $in: arrayUserIds }, "company.id": user.company.id }, { isBanned: 1 })
         }
         res.json({
             result: "ok",
-            message: "Number of users blocked: " + raw.nModified
+            message: "Block users successfully!"
         })
     } catch (error) {
         next(error)
     }
 }
 
+const unlockById = async (req, res, next) => {
+    const { userId } = req.params
+    const { user } = req
+    try {
+        if (user.role === "admin") {
+            await User.updateMany(
+                { _id: userId },
+                { isBanned: 0 },
+                { upsert: true },
+            )
+        } else {
+            await User.updateMany({ _id: userId, "company.id": user.company.id }, { isBanned: 0 })
+        }
+        res.json({
+            result: "ok",
+            message: `Unlock user with ID ${userId} successfully`
+        })
+    } catch (error) {
+        next(error)
+    }
+}
+
+const getDetailById = async (req, res, next) => {
+    try {
+        const foundUser = await User.findById(req.params.userId)
+            .select("-password -role")
+            .populate("company.id", "name")
+            .populate("projects.id", "title")
+            .populate("plants.id", "title")
+            // .populate("jobs", "title")
+            .populate("teams.id", "name")
+            // .populate("comments", "body comentOn")
+            .exec()
+
+        if (!foundUser) next("Can not find this user")
+        res.json({
+            result: 'ok',
+            message: 'Get detail success',
+            data: foundUser
+        })
+    } catch (error) {
+        next(error)
+    }
+}
+
+const getAllUser = async (req, res, next) => {
+    const foundUsers = await User.find().select("name createdAt")
+    if (!foundUsers) next("Can not show list of users")
+    res.json({
+        result: 'ok',
+        message: 'Show list of all users successfully!',
+        data: foundUsers
+    })
+}
+
 module.exports = {
-    create, update, blockByIds
+    create,
+    update,
+    blockByIds,
+    unlockById,
+    getDetailById,
+    getAllUser
 }

@@ -17,7 +17,7 @@ module.exports.required = (req, res, next) => {
                 if (user.isBanned === 1) {
                     throw "User is blocked"
                 }
-                res.locals.user = user
+                req.user = user
                 return next()
             })
         })

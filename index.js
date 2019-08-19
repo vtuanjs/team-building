@@ -19,9 +19,13 @@ app.use('/user/', require('./routes/user.route'))
 app.use('/auth/', require('./routes/auth.route'))
 app.use('/company/', require('./routes/company.route'))
 app.use('/project/', require('./routes/project.route'))
+app.use('/plant/', require('./routes/plant.route'))
+app.use('/job/', require('./routes/job.route'))
+app.use('/team/', require('./routes/team.route'))
+app.use('/comment/', require('./routes/comment.route'))
 
 app.use((err, req, res, next) => {
-    res.json({
+    res.status(500).json({
         result: "failed",
         message: "Something went wrong! " + err
     })
