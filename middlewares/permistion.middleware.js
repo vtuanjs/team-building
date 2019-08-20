@@ -1,33 +1,22 @@
-const isAdmin = (user) => {
-    return user.role === "admin"
-}
-
-const isCompanyMember = (user, companyId) => {
-    return user.company.id && user.company.id.equals(companyId)
-}
-
-const isCompanyManager = (user, companyId) => {
-    return user.company.id && user.company.id.equals(companyId) &&
-        user.company.role === "manager"
-}
-
-const isProjectMember = (user, projectId) => {
-    return user.projects.some(item => (item.id.equals(projectId)))
-}
-
-const isProjectAuthor = (user, projectId) => {
-    return user.projects.some(item => (item.id.equals(projectId) &&
-        item.role === "author"))
-}
-
-const checkPermit = (...checks) => {
-    let permit = 0
-    for (let i = 0; i < checks.length; i++) {
-        if (checks[i]) permit = 1
+module.exports.checkPermit = (...allowed) => {
+    //Manager > Secreatary > User
+    //The manager will have all user and secretary rights
+    if (allowed.indexOf("user") > -1) {
+        allowed.push("manager", "secretary")
+    } else {
+        if (allowed.indexOf("secretary") > -1) {
+            allowed.push("manager")
+        }
     }
-    return permit
+
+    const isAllowed = role => allowed.indexOf(role) > -1;
+
+    return (req, res, next) => {
+        if (req.user && isAllowed(req.user.role)) return next()
+        else return res.status(403).json({
+            result: "failed",
+            message: "You don't have authorization to do this action!"
+        })
+    }
 }
-module.exports = {
-    isAdmin, isCompanyMember, isCompanyManager,
-    isProjectMember, isProjectAuthor, checkPermit
-}
+

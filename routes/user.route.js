@@ -2,10 +2,7 @@ const express = require('express')
 const router = express.Router()
 const userController = require('../controllers/user.controller')
 const authentication = require('../middlewares/auth.middleware')
-const {
-    isAdmin, isCompanyMember, isCompanyManager,
-    isProjectMember, isProjectManager, checkPermit
-} = require('../middlewares/permistion.middleware')
+const { checkPermit } = require('../middlewares/permistion.middleware')
 
 //Body: name, email, password
 router.post('/register-user', userController.create)
@@ -14,30 +11,14 @@ router.post('/register-user', userController.create)
 // //Body: userIds
 router.post('/admin/block-by-ids',
     authentication.required,
-    (req, res, next) => {
-        const { user } = req
-        const companyId = user.company.id
-        //Fake company id
-        checkPermit(
-            isAdmin(user),
-            isCompanyManager(user, companyId)
-        )(next)
-    },
+    checkPermit("admin"),
     userController.blockByIds
 )
 
-router.post('/admin/unlock-by-id/:userId',
+router.post('/admin/unlock-by-ids',
     authentication.required,
-    (req, res, next) => {
-        const { user } = req
-        const companyId = user.company.id
-        //Fake company id
-        checkPermit(
-            isAdmin(user),
-            isCompanyManager(user, companyId)
-        )(next)
-    },
-    userController.unlockById
+    checkPermit("admin"),
+    userController.unlockByIds
 )
 
 router.put('/update',

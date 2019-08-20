@@ -1,217 +1,222 @@
 const Company = require('../models/company.model')
 const User = require('../models/user.model')
 
-const add = (req, res, next) => {
+const add = async (req, res, next) => {
     const { name, address, emailDomain } = req.body
-
-    return Company.create(
-        { name, address, emailDomain },
-        (error, doc) => {
-            if (error) return next(error)
-
-            res.json({
-                result: "ok",
-                message: "Create company successfully",
-                data: doc
-            })
-        }
-    )
+    try {
+        const company = await Company.create({ name, address, emailDomain })
+        res.json({
+            result: "ok",
+            message: "Create company successfully",
+            data: company
+        })
+    } catch (error) {
+        next(error)
+    }
 }
 
-const deleteById = (req, res, next) => {
+const deleteById = async (req, res, next) => {
     const { companyId } = req.params
+    try {
+        const company = await Company.findById(companyId)
+        if (!company)
+            throw "Can not find company with id: " + companyId
 
-    return Company.findById(companyId, (error, doc) => {
-        if (error) return next(error)
-        if (!doc)
-            return next("Can not find company with id: " + companyId)
-
-        const compareDate = (Date.now() - doc.createdAt) / 1000
-
+        const compareDate = (Date.now() - company.createdAt) / 1000
         if (compareDate >= 600)
-            return next("You can not delete the company created after 10 min, you only can block it!")
+            throw "You can not delete the company created after 10 min, you only can block it!"
 
-        Promise.all([
-            doc.deleteOne(),
-            res.json({
-                result: "ok",
-                message: "Delete company successfully!",
-            })
-        ]).catch(error => next(error))
-    })
+        await company.deleteOne()
+
+        res.json({
+            result: "ok",
+            message: "Delete company successfully!",
+        })
+    } catch (error) {
+        next(error)
+    }
 }
 
-const update = (req, res, next) => {
-    const { companyId, name, address } = req.body
+const update = async (req, res, next) => {
+    const { name, address } = req.body
+    const companyId = req.user.role === "admin" ?
+        req.body.companyId : req.user.company
 
     const query = {
         ...(name && { name }),
         ...(address && { address }),
     }
+    try {
+        const company = await Company.findByIdAndUpdate(
+            companyId, query, { new: true }
+        )
 
-    return Company.findByIdAndUpdate(
-        companyId,
-        query,
-        { new: true },
-        (err, doc) => {
-            if (err) return next(err)
-            if (!doc) return next("Can not find company")
+        if (!company) throw "Can not find company"
 
-            res.json({
-                result: "ok",
-                message: "Update company success",
-                data: doc
-            })
-        }
-    )
+        res.json({
+            result: "ok",
+            message: "Update company success",
+            data: company
+        })
+    } catch (error) {
+        next(error)
+    }
 }
 
-const blockCompanyById = (req, res, next) => {
+const blockCompanyById = async (req, res, next) => {
     const { companyId } = req.params
+    try {
+        const company = await Company.findByIdAndUpdate(
+            companyId, { isBanned: 1 }, { upsert: true }
+        )
 
-    return Company.findByIdAndUpdate(
-        companyId,
-        { isBanned: 1 },
-        { upsert: true },
-        (error, document) => {
-            if (error) return next(error)
-            if (!document) return next("Can not find company")
+        if (!company) throw "Can not find company"
 
-            res.json({
-                result: 'ok',
-                message: `Block company with name: ${document.name} successfully!`
-            })
-        }
-    )
+        res.json({
+            result: 'ok',
+            message: `Block company with name: ${company.name} successfully!`
+        })
+    } catch (error) {
+        next(error)
+    }
 }
 
-const unlockCompanyById = (req, res, next) => {
+const unlockCompanyById = async (req, res, next) => {
     const { companyId } = req.params
+    try {
+        const company = await Company.findByIdAndUpdate(
+            companyId, { isBanned: 0 }, { upsert: true }
+        )
 
-    return Company.findByIdAndUpdate(
-        companyId,
-        { isBanned: 0 },
-        { upsert: true },
-        (error, document) => {
-            if (error) return next(error)
-            if (!document) return next("Can not find company")
+        if (!company) throw "Can not find company"
 
-            res.json({
-                result: 'ok',
-                message: `Unlock company with name: ${document.name} successfully!`
-            })
-        }
-    )
+        res.json({
+            result: 'ok',
+            message: `Unlock company with name: ${company.name} successfully!`
+        })
+    } catch (error) {
+        next(error)
+    }
 }
 
-const findByUserId = (req, res, next) => {
-    const { userId } = req.params
+const findByUserId = async (req, res, next) => {
+    const userId = req.user.role === "admin" ?
+        req.params.userId : req.user._id
+    try {
+        const company = await Company.findOne(
+            { members: { $in: [userId] } },
+            "name address emailDomain createdAt"
+        )
 
-    return Company.findOne({ members: { $in: [userId] } },
-        "name address emailDomain createdAt",
-        (error, doc) => {
-            if (error) return next(error)
-            if (!doc) return next("Can not find this company by user")
+        if (!company) return next("Can not find this company by user")
 
-            res.json({
-                result: "ok",
-                message: "Find company by user successfully",
-                data: doc
-            })
-        }
-    )
+        res.json({
+            result: "ok",
+            message: "Find company by user successfully",
+            data: company
+        })
+    } catch (error) {
+        next(error)
+    }
+
 }
 
-const showCompany = (req, res, next) => {
-    return Company.find(
-        {},
-        "name address emailDomain createdAt",
-        (error, docs) => {
-            if (error) return next(error)
-            if (!docs) return next("Can not show company")
+const showListCompany = async (req, res, next) => {
+    try {
+        const company = Company.find(
+            {},
+            "name address emailDomain createdAt"
+        )
 
-            res.json({
-                result: "ok",
-                message: "Show list of company successfully",
-                data: docs
-            })
-        }
-    )
+        if (!company) return next("Can not show company")
+
+        res.json({
+            result: "ok",
+            message: "Show list of company successfully",
+            data: company
+        })
+
+    } catch (error) {
+        next(error)
+    }
 }
 
-const getDetailById = (req, res, next) => {
-    const { companyId } = req.params
+const getDetailById = async (req, res, next) => {
+    const companyId = req.user.role === "admin" ?
+        req.body.companyId : req.user.company
+    try {
+        const company = await Company.findById(companyId)
 
-    return Company.findById(companyId, (error, doc) => {
-        if (error) return next(error)
-        if (!doc) return next("Wrong company id")
+        if (!company) return next("Wrong company id")
 
         res.json({
             result: "ok",
             message: "Get company detail successfully!",
-            data: doc
+            data: company
         })
-    })
-}
-
-const addMember = (req, res, next) => {
-    const { userId, role, companyId } = req.body
-
-    Promise.all([
-        Company.findById(companyId),
-        User.findById(userId)
-    ]).then(([company, user]) => {
-        if (!company || !user)
-            throw "Can not find user or company"
-        if (company.members.indexOf(userId) > -1)
-            throw "User already in company"
-
-        Promise.all([
-            company.updateOne({ $push: { members: userId } }),
-            user.updateOne({ company: { id: userId, role: role } })
-        ]).then(() => {
-            return res.json({
-                result: 'ok',
-                message: `Add member with id: ${userId} successfully!`,
-            })
-        })
-    }).catch(error => next(error))
-}
-
-const changeRole = (req, res, next) => {
-    return (role) => {
-        let { userId, companyId } = req.body
-        const signedUser = req.user
-
-        if (!companyId) companyId = signedUser.company.id
-
-        Promise.all([
-            Company.findById(companyId),
-            User.findById(userId)
-        ]).then(([company, user]) => {
-            if (!company || !user) return next("Can not find user or company")
-
-            return user.updateOne(
-                { company: { id: companyId, role: role } },
-                (error, result) => {
-                    if (error) throw error
-
-                    res.json({
-                        result: 'ok',
-                        message: `${user.name} is now ${role} of company: ${company.name}!`,
-                    })
-                }
-            )
-        }).catch(error => next(error))
+    } catch (error) {
+        next(error)
     }
 }
 
-const makeMemberBecomeManager = (req, res, next) => {
-    changeRole(req, res, next)("manager")
+const addMember = async (req, res, next) => {
+    const { userId } = req.body
+
+    const companyId = req.user.role === "admin" ?
+        req.body.companyId : req.user.company
+    try {
+        const [company, user] = await Promise.all([
+            Company.findById(companyId),
+            User.findById(userId)
+        ])
+
+        if (!company || !user)
+            throw "Can not find user or company"
+        if (user.company)
+            throw "User already in this / another company"
+
+        await Promise.all([
+            company.updateOne({ $push: { members: userId } }),
+            user.updateOne({ company: companyId })
+        ])
+
+        return res.json({
+            result: 'ok',
+            message: `Add member with id: ${userId} successfully!`,
+        })
+    } catch (error) {
+        next(error)
+    }
 }
 
-const makeManagerBecomeMember = (req, res, next) => {
-    changeRole(req, res, next)("employee")
+const changeUserRole = async (req, res, next) => {
+    const { userId, role } = req.body
+    const signedUser = req.user
+
+    const companyId = signedUser.role === "admin" ?
+        req.body.companyId : signedUser.company
+
+    if (signedUser.role != "admin" && role === "admin") {
+        //Only admin can make user become admin. If not, role = manager
+        role = "manager"
+    }
+    try {
+        const [company, user] = await Promise.all([
+            Company.findById(companyId),
+            User.findById(userId)
+        ])
+
+        if (!company || !user) throw "Can not find user or company"
+
+        await user.updateOne({ role })
+
+        res.json({
+            result: 'ok',
+            message: `${user.name} is now ${role} of company: ${company.name}!`,
+        })
+    } catch (error) {
+        next(error)
+    }
 }
 
 module.exports = {
@@ -222,8 +227,7 @@ module.exports = {
     findByUserId,
     getDetailById,
     deleteById,
-    showCompany,
+    showListCompany,
     addMember,
-    makeMemberBecomeManager,
-    makeManagerBecomeMember
+    changeUserRole
 }

@@ -8,27 +8,13 @@ const UserSchema = new Schema({
     phone: { type: String, default: "N/A"},
     address: { type: String, default: "N/A"},
     password: { type: String, required: true },
-    role: { type: String, default: "employee" }, //admin, employee
+    role: { type: String, default: "user" }, //admin, manager, secret, user
     isActive: { type: Number, default: 1},
     isBanned: { type: Number, default: 0 }, //1: banned
-    company: {
-        id: { type: Schema.Types.ObjectId, ref: "Company" },
-        role: { type: String, default: "employee" } //manager, employee
-    },
-    team: {
-        id: { type: Schema.Types.ObjectId, ref: "Team" },
-        role: { type: String, default: "employee"}
-    },
-    projects: [{
-        _id : false, 
-        id: { type: Schema.Types.ObjectId, ref: "Project" },
-        role: { type: String, default: "employee"}
-    }],
-    plants: [{
-        _id : false, 
-        id: { type: Schema.Types.ObjectId, ref: "Plant" },
-        role: { type: String, default: "employee"}
-    }],
+    company: {type: Schema.Types.ObjectId, ref: "Company" },
+    team: { type: Schema.Types.ObjectId, ref: "Team" },
+    projects: [{type: Schema.Types.ObjectId, ref: "Project"}],
+    plants: [{type: Schema.Types.ObjectId, ref: "Plant"}],
     jobs: [{ type: Schema.Types.ObjectId, ref: "Job" }],
     comments: [{ type: Schema.Types.ObjectId, ref: "Comment" }]
 }, {timestamps: true})

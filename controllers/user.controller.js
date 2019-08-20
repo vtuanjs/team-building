@@ -6,7 +6,7 @@ const addToCompanyMemberByEmailDomain = (user, emailDomain) => {
     Company.findOne({ emailDomain }, (error, company) => {
         if (company) {
             Promise.all([
-                user.updateOne({ company: { ...user.company, id: company._id } }),
+                user.updateOne({ company: company._id }),
                 company.updateOne({ $push: { members: user._id } })
             ])
         }
@@ -37,7 +37,7 @@ const create = async (req, res, next) => {
 }
 
 const update = async (req, res, next) => {
-    const { name, gender, phone, address, password, oldPassword } = req.body
+    let { name, gender, phone, address, password, oldPassword } = req.body
     try {
         const user = req.user
         if (password) {
@@ -54,7 +54,7 @@ const update = async (req, res, next) => {
             ...(address && { address }),
             ...(password && { password }),
         }
-        await user.updateOne(query, { new: true })
+        await user.updateOne(query)
         res.json({
             result: 'ok',
             message: `Update user with ID: ${user._id} succesfully!`,
@@ -74,19 +74,11 @@ const blockByIds = async (req, res, next) => {
         if (arrayUserIds.indexOf(user._id) > -1) {
             throw "Can not block your self"
         }
-        const userAdmin = await User.findOne({ role: "admin" })
-        if (arrayUserIds.indexOf(userAdmin._id) > -1) {
-            throw "Block admin user? Are you kidding me?"
-        }
-        if (user.role === "admin") {
-            await User.updateMany(
-                { _id: { $in: arrayUserIds } },
-                { isBanned: 1 },
-                { upsert: true },
-            )
-        } else {
-            await User.updateMany({ _id: { $in: arrayUserIds }, "company.id": user.company.id }, { isBanned: 1 })
-        }
+        await User.updateMany(
+            { _id: { $in: arrayUserIds } },
+            { isBanned: 1 },
+            { upsert: true },
+        )
         res.json({
             result: "ok",
             message: "Block users successfully!"
@@ -96,26 +88,23 @@ const blockByIds = async (req, res, next) => {
     }
 }
 
-const unlockById = async (req, res, next) => {
-    const { userId } = req.params
-    const { user } = req
-    try {
-        if (user.role === "admin") {
-            await User.updateMany(
-                { _id: userId },
-                { isBanned: 0 },
-                { upsert: true },
-            )
-        } else {
-            await User.updateMany({ _id: userId, "company.id": user.company.id }, { isBanned: 0 })
+const unlockByIds = (req, res, next) => {
+    const { userIds } = req.body
+    const arrayUserIds = userIds.split(',').map(item => {
+        return item.trim()
+    })
+    return User.updateMany(
+        { _id: { $in: arrayUserIds } },
+        { isBanned: 0 },
+        { upsert: true },
+        (error, raw) => {
+            if (error) return next(error)
+            res.json({
+                result: "ok",
+                message: "Unlock users successfully!"
+            })
         }
-        res.json({
-            result: "ok",
-            message: `Unlock user with ID ${userId} successfully`
-        })
-    } catch (error) {
-        next(error)
-    }
+    )
 }
 
 const getDetailById = async (req, res, next) => {
@@ -155,7 +144,7 @@ module.exports = {
     create,
     update,
     blockByIds,
-    unlockById,
+    unlockByIds,
     getDetailById,
     getAllUser
 }
