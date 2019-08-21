@@ -24,8 +24,8 @@ app.use('/job/', require('./routes/job.route'))
 app.use('/team/', require('./routes/team.route'))
 app.use('/comment/', require('./routes/comment.route'))
 
-app.use((err, req, res, next) => {
-    res.status(500).json({
+app.use((err, _req, res, _next) => {
+    res.json({
         result: "failed",
         message: "Something went wrong! " + err
     })

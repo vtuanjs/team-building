@@ -69,10 +69,22 @@ router.post('/add-member',
     companyController.addMember
 )
 
+router.post('/remove-member',
+    authentication.required,
+    checkPermit("manager"),
+    companyController.removeMember
+)
+
 router.post('/change-user-role',
     authentication.required,
     checkPermit("admin", "manager"),
     companyController.changeUserRole
+)
+
+router.post('/upgrade-vip',
+    authentication.required,
+    checkPermit("admin"),
+    companyController.upgradeVip
 )
 
 module.exports = router

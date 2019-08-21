@@ -9,13 +9,15 @@ router.post('/register-user', userController.create)
 
 // //Header: x-access-token
 // //Body: userIds
-router.post('/admin/block-by-ids',
+router.post(
+    '/admin/block-by-ids',
     authentication.required,
     checkPermit("admin"),
     userController.blockByIds
 )
 
-router.post('/admin/unlock-by-ids',
+router.post(
+    '/admin/unlock-by-ids',
     authentication.required,
     checkPermit("admin"),
     userController.unlockByIds
@@ -26,8 +28,16 @@ router.put('/update',
     userController.update
 )
 
-router.get('/get-detail/:userId', userController.getDetailById)
+router.get(
+    '/get-detail/:userId',
+    authentication.required,
+    userController.getDetailById
+)
 
-router.get('/get-all-user', userController.getAllUser)
+router.get(
+    '/get-all-user',
+    authentication.required,
+    userController.getAllUser
+)
 
 module.exports = router

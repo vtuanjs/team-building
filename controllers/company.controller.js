@@ -121,7 +121,7 @@ const findByUserId = async (req, res, next) => {
 
 }
 
-const showListCompany = async (req, res, next) => {
+const showListCompany = async (_req, res, next) => {
     try {
         const company = Company.find(
             {},
@@ -143,7 +143,8 @@ const showListCompany = async (req, res, next) => {
 
 const getDetailById = async (req, res, next) => {
     const companyId = req.user.role === "admin" ?
-        req.body.companyId : req.user.company
+        req.params.companyId : req.user.company
+
     try {
         const company = await Company.findById(companyId)
 
@@ -164,6 +165,7 @@ const addMember = async (req, res, next) => {
 
     const companyId = req.user.role === "admin" ?
         req.body.companyId : req.user.company
+
     try {
         const [company, user] = await Promise.all([
             Company.findById(companyId),
@@ -178,6 +180,33 @@ const addMember = async (req, res, next) => {
         await Promise.all([
             company.updateOne({ $push: { members: userId } }),
             user.updateOne({ company: companyId })
+        ])
+
+        return res.json({
+            result: 'ok',
+            message: `Add member with id: ${userId} successfully!`,
+        })
+    } catch (error) {
+        next(error)
+    }
+}
+
+const removeMember = async (req, res, next) => {
+    const { userId } = req.body
+    const companyId = req.user.company
+
+    try {
+        const [company, user] = await Promise.all([
+            Company.findById(companyId),
+            User.findById(userId)
+        ])
+
+        if (!company || !user)
+            throw "Can not find user or company"
+
+        await Promise.all([
+            company.updateOne({ $pull: { members: userId } }),
+            user.updateOne({ $unset: { company } })
         ])
 
         return res.json({
@@ -219,6 +248,74 @@ const changeUserRole = async (req, res, next) => {
     }
 }
 
+const upgradeVip = async (req, res, next) => {
+    const { companyId, vip } = req.body
+
+    try {
+        const value = vip.trim().toLowerCase()
+        let limited = {}
+
+        switch (value) {
+            case "vip1":
+                limited = {
+                    members: 100,
+                    teams: 10,
+                    space: 100,
+                    projects: 9999,
+                    plants: 9999,
+                    jobs: 9999,
+                }
+                break
+            case "vip2":
+                limited = {
+                    members: 200,
+                    teams: 30,
+                    space: 1000,
+                    projects: 9999,
+                    plants: 9999,
+                    jobs: 9999,
+                }
+                break
+            case "vip3":
+                limited = {
+                    members: 9999,
+                    teams: 9999,
+                    space: 5000,
+                    projects: 9999,
+                    plants: 9999,
+                    jobs: 9999,
+                }
+                break
+            default:
+                limited = {
+                    members: 10,
+                    teams: 2,
+                    space: 5,
+                    projects: 1,
+                    plants: 5,
+                    jobs: 20,
+                }
+                break
+        }
+
+        const company = await Company.findByIdAndUpdate(
+            companyId,
+            { limited, lastUpgradeVip: Date.now() },
+            { new: true }
+        ).select("limited lastUpgradeVip")
+
+        if (!company) throw "Can not find company with id: " + companyId
+
+        res.json({
+            result: 'ok',
+            message: `Update company ${company.name} to ${vip} successfully`,
+            data: company
+        })
+    } catch (error) {
+        next(error)
+    }
+}
+
 module.exports = {
     add,
     update,
@@ -229,5 +326,7 @@ module.exports = {
     deleteById,
     showListCompany,
     addMember,
-    changeUserRole
+    removeMember,
+    changeUserRole,
+    upgradeVip
 }
