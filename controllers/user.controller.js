@@ -4,13 +4,15 @@ const Company = require('../models/company.model')
 
 const addCompanyMemberByEmailDomain = async (user, emailDomain) => {
     try {
-        const company = await Company.findOne({ emailDomain })
-        if (company) await Promise.all([
-            user.updateOne({ company: company._id }),
-            company.updateOne({ $push: { members: user._id } })
-        ])
+        const updatedCompany = await
+            Company.findOneAndUpdate({ emailDomain }, { $push: { members: user._id } })
+        if (!updatedCompany) return
+        else {
+            user.company.id = updatedCompany._id
+            await user.save()
+        }
     } catch (error) {
-        next(error)
+        throw error
     }
 }
 
@@ -26,15 +28,11 @@ const create = async (req, res, next) => {
             password: encryptedPassword
         })
 
-        addCompanyMemberByEmailDomain(newUser, emailDomain)
+        await addCompanyMemberByEmailDomain(newUser, emailDomain)
 
-        res.json({
-            result: 'ok',
-            message: `Create user ${newUser.name} successfully!`,
-        })
+        res.json({ message: `Create user ${newUser.name} successfully!` })
     } catch (error) {
         if (error.code === 11000) error = "Email already exists"
-        res.status(422)
         next(error)
     }
 }
@@ -62,10 +60,7 @@ const update = async (req, res, next) => {
 
         await user.updateOne(query)
 
-        res.json({
-            result: 'ok',
-            message: `Update user with ID: ${user._id} succesfully!`,
-        })
+        res.json({ message: `Update user with ID: ${user._id} succesfully!` })
     } catch (error) {
         next("Update error: " + error)
     }
@@ -85,14 +80,10 @@ const blockByIds = async (req, res, next) => {
 
         await User.updateMany(
             { _id: { $in: arrayUserIds } },
-            { isBanned: 1 },
-            { upsert: true },
+            { $set: { isBanned: 1 } },
         )
 
-        res.json({
-            result: "ok",
-            message: "Block users successfully!"
-        })
+        res.json({ message: "Block users successfully!" })
     } catch (error) {
         next(error)
     }
@@ -107,14 +98,23 @@ const unlockByIds = async (req, res, next) => {
 
         await User.updateMany(
             { _id: { $in: arrayUserIds } },
-            { isBanned: 0 },
-            { upsert: true }
+            { $set: { isBanned: 0 } }
         )
 
-        res.json({
-            result: "ok",
-            message: "Unlock users successfully!"
-        })
+        res.json({ message: "Unlock users successfully!" })
+    } catch (error) {
+        next(error)
+    }
+}
+
+const findByEmail = async (req, res, next) => {
+    const { email } = req.params
+    try {
+        const foundUser = await User.findOne({ email: email.trim().toLowerCase() }).select("name email")
+
+        if (!foundUser) throw "Nothing"
+
+        res.json({ user: foundUser })
     } catch (error) {
         next(error)
     }
@@ -124,7 +124,7 @@ const getDetailById = async (req, res, next) => {
     const userId = req.params.userId
 
     const query = req.user.role === "admin" ? { _id: userId } :
-        { _id: userId, company: req.user.company }
+        { _id: userId, company: req.user.company.id }
 
     try {
         const foundUser = await User.findOne(query)
@@ -158,28 +158,19 @@ const getDetailById = async (req, res, next) => {
 
         if (!foundUser) next("Can not find this user")
 
-        res.json({
-            result: 'ok',
-            message: 'Get detail success',
-            data: foundUser
-        })
+        res.json({ user: foundUser })
     } catch (error) {
         next(error)
     }
 }
 
-const getAllUser = async (req, res, next) => {
-    const query = req.user.role === "admin" ? {} : { company: req.user.company }
+const getAllUser = async (_req, res, next) => {
     try {
-        const foundUsers = await User.find(query).select("name email createdAt")
+        const foundUsers = await User.find().select("name email createdAt")
 
         if (!foundUsers) next("Can not show list of users")
 
-        res.json({
-            result: 'ok',
-            message: 'Show list of all users successfully!',
-            data: foundUsers
-        })
+        res.json({ users: foundUsers })
     } catch (error) {
         next(error)
     }
@@ -191,5 +182,6 @@ module.exports = {
     blockByIds,
     unlockByIds,
     getDetailById,
-    getAllUser
+    getAllUser,
+    findByEmail
 }

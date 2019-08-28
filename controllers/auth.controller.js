@@ -1,5 +1,4 @@
 const User = require('../models/user.model')
-const Company = require('../models/company.model')
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
 const secretString = "secret string"
@@ -15,12 +14,6 @@ module.exports.login = async (req, res, next) => {
         if (foundUser.isBanned === 1) {
             throw "User is banned. Please contact your website admin"
         }
-        if (foundUser.role != "admin"){
-            let company = await Company.findById(foundUser.company)
-            if (company && company.isBanned){
-                throw "Your company is banned. Please contact your website admin"
-            }
-        }
 
         let encryptedPassword = foundUser.password
         let checkPassword = await bcrypt.compare(password, encryptedPassword)
@@ -29,7 +22,7 @@ module.exports.login = async (req, res, next) => {
             let jsonObject = {
                 id: foundUser._id
             }
-            
+
             let tokenKey = await jwt.sign(
                 jsonObject,
                 secretString,
@@ -40,15 +33,11 @@ module.exports.login = async (req, res, next) => {
             let userObject = foundUser.toObject()
             userObject.tokenKey = tokenKey
 
-            return res.json({
-                result: "ok",
-                message: "Login user successfully",
-                data: userObject
-            })
+            return res.json({ user: userObject })
         } else {
-            return next("Wrong user or password")
+            throw "Wrong user or password"
         }
     } catch (error) {
-        next(error)
+        res.status(401).json({ message: `Unauthorized ${error}` })
     }
 }

@@ -1,22 +1,158 @@
-module.exports.checkPermit = (...allowed) => {
-    //Manager > Secreatary > User
-    //The manager will have all user and secretary rights
+const isAllowed = (roleCheck, rolesAllowed) => {
+    return rolesAllowed.indexOf(roleCheck) > -1
+}
+
+module.exports.inUser = (...allowed) => {
+    //The manager will have user rights
     if (allowed.indexOf("user") > -1) {
-        allowed.push("manager", "secretary")
-    } else {
-        if (allowed.indexOf("secretary") > -1) {
-            allowed.push("manager")
-        }
+        allowed.push("manager")
     }
 
-    const isAllowed = role => allowed.indexOf(role) > -1;
+    return (req) => {
+        if (req.user && isAllowed(req.user.role, allowed)) return true
+        else return false
+    }
+}
 
+module.exports.inCompany = (compareFrom, ...allowed) => {
+    if (allowed.indexOf("employee") > -1) {
+        allowed.push("manager")
+    }
+
+    return async (req) => {
+        const signedUser = req.user
+        let companyId
+        switch (compareFrom) {
+            case "body":
+                companyId = req.body.companyId
+                break;
+            case "params":
+                companyId = req.params.companyId
+                break;
+            case "query":
+                companyId = req.query.companyId
+                break;
+            default:
+                companyId = signedUser.company.id
+                break;
+        }
+
+        if (signedUser && signedUser.company.id.equals(companyId)
+            && isAllowed(signedUser.company.role, allowed))
+            return true
+
+        return false
+    }
+}
+
+module.exports.inProject = (compareFrom, ...allowed) => {
+    const signedUser = req.user
+
+    if (allowed.indexOf("employee") > -1) {
+        allowed.push("manager")
+    }
+
+    return async (req, _res) => {
+        let projectId
+        switch (compareFrom) {
+            case "body":
+                projectId = req.body.projectId
+                break;
+            case "params":
+                projectId = req.params.projectId
+                break;
+            case "query":
+                projectId = req.query.projectId
+                break;
+            default:
+                break;
+        }
+
+        if (signedUser && signedUser.projects
+            && signedUser.projects.some(project => {
+                return project.id.equals(projectId)
+                    && isAllowed(project.role, allowed)
+            })) return true
+
+        return false
+    }
+}
+
+module.exports.inPlant = (compareFrom, ...allowed) => {
+    const signedUser = req.user
+
+    if (allowed.indexOf("employee") > -1) {
+        allowed.push("manager")
+    }
+
+    return async (req, _res) => {
+        let plantId
+        switch (compareFrom) {
+            case "body":
+                plantId = req.body.plantId
+                break;
+            case "params":
+                plantId = req.params.plantId
+                break;
+            case "query":
+                plantId = req.query.plantId
+                break;
+            default:
+                break;
+        }
+
+        if (signedUser && signedUser.plants
+            && signedUser.plants.some(plant => {
+                return plant.id.equals(plantId)
+                    && isAllowed(plant.role, allowed)
+            })) return true
+
+        return false
+    }
+}
+
+module.exports.inJob = (compareFrom, ...allowed) => {
+    const signedUser = req.user
+
+    if (allowed.indexOf("employee") > -1) {
+        allowed.push("manager")
+    }
+
+    return async (req, _res) => {
+        let jobId
+        switch (compareFrom) {
+            case "body":
+                jobId = req.body.jobId
+                break;
+            case "params":
+                jobId = req.params.jobId
+                break;
+            case "query":
+                jobId = req.query.jobId
+                break;
+            default:
+                break;
+        }
+
+        if (signedUser && signedUser.jobs
+            && signedUser.jobs.some(job => {
+                return job.id.equals(jobId)
+                    && isAllowed(job.role, allowed)
+            })) return true
+
+        return false
+    }
+}
+
+module.exports.checkPermit = (...checks) => {
     return (req, res, next) => {
-        if (req.user && isAllowed(req.user.role)) return next()
-        else return res.status(403).json({
-            result: "failed",
+        for (let i = 0; i < checks.length; i++) {
+            if (checks[i](req, res, next)) {
+                return next()
+            }
+        }
+        return res.status(403).json({
             message: "You don't have authorization to do this action!"
         })
     }
 }
-

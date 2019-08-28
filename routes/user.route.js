@@ -2,26 +2,10 @@ const express = require('express')
 const router = express.Router()
 const userController = require('../controllers/user.controller')
 const authentication = require('../middlewares/auth.middleware')
-const { checkPermit } = require('../middlewares/permistion.middleware')
+const { checkPermit, inUser } = require('../middlewares/permistion.middleware')
 
 //Body: name, email, password
 router.post('/register-user', userController.create)
-
-// //Header: x-access-token
-// //Body: userIds
-router.post(
-    '/admin/block-by-ids',
-    authentication.required,
-    checkPermit("admin"),
-    userController.blockByIds
-)
-
-router.post(
-    '/admin/unlock-by-ids',
-    authentication.required,
-    checkPermit("admin"),
-    userController.unlockByIds
-)
 
 router.put('/update',
     authentication.required,
@@ -39,5 +23,7 @@ router.get(
     authentication.required,
     userController.getAllUser
 )
+
+router.get('/find-by-email/:email', userController.findByEmail)
 
 module.exports = router

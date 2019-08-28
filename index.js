@@ -24,11 +24,11 @@ app.use('/job/', require('./routes/job.route'))
 app.use('/team/', require('./routes/team.route'))
 app.use('/comment/', require('./routes/comment.route'))
 
-app.use((err, _req, res, _next) => {
-    res.json({
-        result: "failed",
-        message: "Something went wrong! " + err
-    })
+app.use('/admin/user/', require('./routes/admin/user.route'))
+app.use('/admin/company/', require('./routes/admin/company.route'))
+
+app.use((error, _req, res, _next) => {
+    res.status(500).json({ message: "Something went wrong! " + error })
 });
 
 const server = http.createServer(app)

@@ -11,11 +11,31 @@ const UserSchema = new Schema({
     role: { type: String, default: "user" }, //admin, manager, secret, user
     isActive: { type: Number, default: 1},
     isBanned: { type: Number, default: 0 }, //1: banned
-    company: {type: Schema.Types.ObjectId, ref: "Company" },
-    team: { type: Schema.Types.ObjectId, ref: "Team" },
-    projects: [{type: Schema.Types.ObjectId, ref: "Project"}],
-    plants: [{type: Schema.Types.ObjectId, ref: "Plant"}],
-    jobs: [{ type: Schema.Types.ObjectId, ref: "Job" }],
+    company: {
+        id: {type: Schema.Types.ObjectId, ref: "Company" },
+        role: {type: String, default: "employee"},
+        _id: false
+    },
+    projects: [{
+        id: {type: Schema.Types.ObjectId, ref: "Project" },
+        role: {type: String, default: "employee"},
+        _id: false
+    }],
+    plants: [{
+        id: {type: Schema.Types.ObjectId, ref: "Plant" },
+        role: {type: String, default: "employee"},
+        _id: false
+    }],
+    jobs: [{
+        id: {type: Schema.Types.ObjectId, ref: "Job" },
+        role: {type: String, default: "employee"},
+        _id: false
+    }],
+    team: {
+        id: {type: Schema.Types.ObjectId, ref: "Team" },
+        role: {type: String, default: "employee"},
+        _id: false
+    },
     comments: [{ type: Schema.Types.ObjectId, ref: "Comment" }]
 }, {timestamps: true})
 

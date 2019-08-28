@@ -1,15 +1,12 @@
 const Company = require('../models/company.model')
 const User = require('../models/user.model')
+const mongoose = require('../database/database')
 
-const add = async (req, res, next) => {
+const create = async (req, res, next) => {
     const { name, address, emailDomain } = req.body
     try {
         const company = await Company.create({ name, address, emailDomain })
-        res.json({
-            result: "ok",
-            message: "Create company successfully",
-            data: company
-        })
+        res.json({ message: `Create company ${company.name} successfully!` })
     } catch (error) {
         next(error)
     }
@@ -28,19 +25,14 @@ const deleteById = async (req, res, next) => {
 
         await company.deleteOne()
 
-        res.json({
-            result: "ok",
-            message: "Delete company successfully!",
-        })
+        res.json({ message: "Delete company successfully!" })
     } catch (error) {
         next(error)
     }
 }
 
 const update = async (req, res, next) => {
-    const { name, address } = req.body
-    const companyId = req.user.role === "admin" ?
-        req.body.companyId : req.user.company
+    const { name, address, companyId } = req.body
 
     const query = {
         ...(name && { name }),
@@ -53,11 +45,7 @@ const update = async (req, res, next) => {
 
         if (!company) throw "Can not find company"
 
-        res.json({
-            result: "ok",
-            message: "Update company success",
-            data: company
-        })
+        res.json({ message: `Update company ${company.name} successfully!` })
     } catch (error) {
         next(error)
     }
@@ -72,10 +60,7 @@ const blockCompanyById = async (req, res, next) => {
 
         if (!company) throw "Can not find company"
 
-        res.json({
-            result: 'ok',
-            message: `Block company with name: ${company.name} successfully!`
-        })
+        res.json({ message: `Block company with name: ${company.name} successfully!` })
     } catch (error) {
         next(error)
     }
@@ -90,18 +75,14 @@ const unlockCompanyById = async (req, res, next) => {
 
         if (!company) throw "Can not find company"
 
-        res.json({
-            result: 'ok',
-            message: `Unlock company with name: ${company.name} successfully!`
-        })
+        res.json({ message: `Unlock company with name: ${company.name} successfully!` })
     } catch (error) {
         next(error)
     }
 }
 
 const findByUserId = async (req, res, next) => {
-    const userId = req.user.role === "admin" ?
-        req.params.userId : req.user._id
+    const { userId } = req.params
     try {
         const company = await Company.findOne(
             { members: { $in: [userId] } },
@@ -110,11 +91,7 @@ const findByUserId = async (req, res, next) => {
 
         if (!company) return next("Can not find this company by user")
 
-        res.json({
-            result: "ok",
-            message: "Find company by user successfully",
-            data: company
-        })
+        res.json({ company })
     } catch (error) {
         next(error)
     }
@@ -123,121 +100,108 @@ const findByUserId = async (req, res, next) => {
 
 const showListCompany = async (_req, res, next) => {
     try {
-        const company = Company.find(
+        const companies = await Company.find(
             {},
             "name address emailDomain createdAt"
         )
 
-        if (!company) return next("Can not show company")
+        if (!companies) return next("Can not show company")
 
-        res.json({
-            result: "ok",
-            message: "Show list of company successfully",
-            data: company
-        })
-
+        res.json({ companies })
     } catch (error) {
         next(error)
     }
 }
 
 const getDetailById = async (req, res, next) => {
-    const companyId = req.user.role === "admin" ?
-        req.params.companyId : req.user.company
+    const { companyId } = req.params
 
     try {
         const company = await Company.findById(companyId)
 
         if (!company) return next("Wrong company id")
 
-        res.json({
-            result: "ok",
-            message: "Get company detail successfully!",
-            data: company
-        })
+        res.json({ company })
     } catch (error) {
         next(error)
     }
 }
 
 const addMember = async (req, res, next) => {
-    const { userId } = req.body
+    const { userId, companyId } = req.body
 
-    const companyId = req.user.role === "admin" ?
-        req.body.companyId : req.user.company
-
+    const session = await mongoose.startSession()
+    session.startTransaction()
     try {
         const [company, user] = await Promise.all([
-            Company.findById(companyId),
-            User.findById(userId)
+            Company.findByIdAndUpdate(companyId, { $push: { members: userId } }).session(session),
+            User.findByIdAndUpdate(userId, { $set: { "company.id": companyId, "company.role": "employee" } }).session(session)
         ])
 
         if (!company || !user)
             throw "Can not find user or company"
-        if (user.company)
-            throw "User already in this / another company"
+        if (user.company.id || (company.members.indexOf(userId) > -1))
+            throw "User already in company"
 
-        await Promise.all([
-            company.updateOne({ $push: { members: userId } }),
-            user.updateOne({ company: companyId })
-        ])
+        await session.commitTransaction();
+        session.endSession();
 
         return res.json({
-            result: 'ok',
             message: `Add member with id: ${userId} successfully!`,
         })
     } catch (error) {
+        await session.abortTransaction();
+        session.endSession();
         next(error)
     }
 }
 
 const removeMember = async (req, res, next) => {
-    const { userId } = req.body
-    const companyId = req.user.company
+    const { userId, companyId } = req.body
+
+    const session = await mongoose.startSession()
+    session.startTransaction()
 
     try {
         const [company, user] = await Promise.all([
-            Company.findById(companyId),
-            User.findById(userId)
+            Company.findByIdAndUpdate(companyId, { $pull: { members: userId } }).session(session),
+            User.findByIdAndUpdate(userId, { $unset: { company } }).session(session)
         ])
 
         if (!company || !user)
             throw "Can not find user or company"
 
-        await Promise.all([
-            company.updateOne({ $pull: { members: userId } }),
-            user.updateOne({ $unset: { company } })
-        ])
+        await session.commitTransaction();
+        session.endSession();
 
         return res.json({
             result: 'ok',
             message: `Add member with id: ${userId} successfully!`,
         })
     } catch (error) {
+        await session.abortTransaction()
+        session.endSession()
         next(error)
     }
 }
 
 const changeUserRole = async (req, res, next) => {
-    const { userId, role } = req.body
+    const { userId, companyId, role } = req.body
     const signedUser = req.user
-
-    const companyId = signedUser.role === "admin" ?
-        req.body.companyId : signedUser.company
 
     if (signedUser.role != "admin" && role === "admin") {
         //Only admin can make user become admin. If not, role = manager
         role = "manager"
     }
+
     try {
-        const [company, user] = await Promise.all([
-            Company.findById(companyId),
-            User.findById(userId)
-        ])
+        const company = await Company.findById(companyId)
 
-        if (!company || !user) throw "Can not find user or company"
+        if (!company) throw "Can not find company"
 
-        await user.updateOne({ role })
+        const user = await user.findByIdAndUpdate(userId, { "company.role": role })
+
+        if (!company) throw "Can not find user"
 
         res.json({
             result: 'ok',
@@ -317,7 +281,7 @@ const upgradeVip = async (req, res, next) => {
 }
 
 module.exports = {
-    add,
+    create,
     update,
     blockCompanyById,
     unlockCompanyById,

@@ -2,59 +2,27 @@ const express = require('express')
 const router = express.Router()
 const companyController = require('../controllers/company.controller')
 const authentication = require('../middlewares/auth.middleware')
-const { checkPermit } = require('../middlewares/permistion.middleware')
+const { checkPermit, inCompany, inUser } = require('../middlewares/permistion.middleware')
 
 // Header: x-access-token
 // Body: name, address, emailDomain
-router.post('/add',
+router.post('/create',
     authentication.required,
-    checkPermit("admin"),
-    companyController.add
+    companyController.create
 )
 
 // Header: x-access-token
 // Body: name, address, companyId
 router.put('/update',
     authentication.required,
-    checkPermit("admin", "manager"),
+    checkPermit(inCompany("body", "manager")),
     companyController.update
-)
-
-// Header: x-access-token
-// Params: companyId
-router.delete('/delete-by-id/:companyId?',
-    authentication.required,
-    checkPermit("admin"),
-    companyController.deleteById
-)
-
-// Header: x-access-token
-// Params: companyId
-router.post('/admin/block-by-id/:companyId?',
-    authentication.required,
-    checkPermit("admin"),
-    companyController.blockCompanyById
-)
-
-// Header: x-access-token
-// Params: companyId
-router.post('/admin/unlock-by-id/:companyId?',
-    authentication.required,
-    checkPermit("admin"),
-    companyController.unlockCompanyById
 )
 
 // Params: companyId
 router.get('/find-by-user-id/:userId?',
     authentication.required,
     companyController.findByUserId
-)
-
-// Params: companyId
-router.get('/show-list-company',
-    authentication.required,
-    checkPermit("admin"),
-    companyController.showListCompany
 )
 
 // Header: x-access-token
@@ -66,25 +34,20 @@ router.get('/get-detail-by-id/:companyId?',
 
 router.post('/add-member',
     authentication.required,
+    checkPermit(inUser("admin"), inCompany("self", "employee")),
     companyController.addMember
 )
 
 router.post('/remove-member',
     authentication.required,
-    checkPermit("manager"),
+    checkPermit(inCompany("self", "manager")),
     companyController.removeMember
 )
 
 router.post('/change-user-role',
     authentication.required,
-    checkPermit("admin", "manager"),
+    checkPermit(inCompany("self", "manager")),
     companyController.changeUserRole
-)
-
-router.post('/upgrade-vip',
-    authentication.required,
-    checkPermit("admin"),
-    companyController.upgradeVip
 )
 
 module.exports = router
