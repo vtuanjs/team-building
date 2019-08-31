@@ -1,13 +1,14 @@
-const mongoose = require('../database/database')
+const mongoose = require('mongoose')
 const Schema = mongoose.Schema
+const ObjectId = mongoose.Schema.Types.ObjectId
 
 const CompanySchema = new Schema({
     name: { type: String, required: true },
     address: { type: String, default: "" },
     emailDomain: { type: String, lowercase: true, match: /^(([\w-]+\.)+[\w-]{2,4})?$/, unique: true, required: true },
     isClosed: { type: Number, default: 0 },
-    projects: [{ type: Schema.Types.ObjectId, ref: "Project" }],
-    members: [{ type: Schema.Types.ObjectId, ref: "User" }],
+    projects: [{ type: ObjectId, ref: "Project" }],
+    members: [{ type: ObjectId, ref: "User" }],
     limited: {
         members: { type: Number, default: 10 },
         teams: { type: Number, default: 2 },

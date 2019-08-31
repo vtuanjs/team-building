@@ -1,38 +1,60 @@
 const Company = require('../models/company.model')
 const User = require('../models/user.model')
-const mongoose = require('../database/database')
+const mongoose = require('mongoose')
 
-const create = async (req, res, next) => {
+const postCompany = async (req, res, next) => {
     const { name, address, emailDomain } = req.body
+    const signedUser = req.user
     try {
-        const company = await Company.create({ name, address, emailDomain })
-        res.json({ message: `Create company ${company.name} successfully!` })
+        if (signedUser.company.id) throw "One person - one company"
+
+        const company = await Company.create({ name, address, emailDomain, members: [signedUser._id] })
+
+        signedUser.company = { id: company._id, role: "manager" }
+        await signedUser.save()
+
+        res.json({ message: `Create company ${company.name} successfully!`, company })
     } catch (error) {
         next(error)
     }
 }
 
-const deleteById = async (req, res, next) => {
+const deleteCompany = async (req, res, next) => {
     const { companyId } = req.params
+
+    const session = await mongoose.startSession()
+    session.startTransaction()
     try {
-        const company = await Company.findById(companyId)
+        const [company, user] = await Promise.all([
+            Company.findByIdAndDelete(companyId).session(session),
+            User.updateMany(
+                { "company.id": companyId },
+                { $unset: { "company.id": companyId } }
+            ).session(session)
+        ])
+
         if (!company)
             throw "Can not find company with id: " + companyId
 
         const compareDate = (Date.now() - company.createdAt) / 1000
-        if (compareDate >= 600)
-            throw "You can not delete the company created after 10 min, you only can block it!"
+        if (compareDate >= 86400)
+            throw "You can not delete the company created after 10 days, you only can block it!"
 
-        await company.deleteOne()
+        await session.commitTransaction()
+        session.endSession()
 
         res.json({ message: "Delete company successfully!" })
     } catch (error) {
+        session.abortTransaction()
+        session.endSession()
+
         next(error)
     }
 }
 
-const update = async (req, res, next) => {
-    const { name, address, companyId } = req.body
+const updateCompany = async (req, res, next) => {
+    const companyId = req.params
+    const { name, address } = req.body
 
     const query = {
         ...(name && { name }),
@@ -45,13 +67,13 @@ const update = async (req, res, next) => {
 
         if (!company) throw "Can not find company"
 
-        res.json({ message: `Update company ${company.name} successfully!` })
+        res.json({ message: `Update company ${company.name} successfully!`, company })
     } catch (error) {
         next(error)
     }
 }
 
-const blockCompanyById = async (req, res, next) => {
+const blockCompany = async (req, res, next) => {
     const { companyId } = req.params
     try {
         const company = await Company.findByIdAndUpdate(
@@ -66,7 +88,7 @@ const blockCompanyById = async (req, res, next) => {
     }
 }
 
-const unlockCompanyById = async (req, res, next) => {
+const unlockCompany = async (req, res, next) => {
     const { companyId } = req.params
     try {
         const company = await Company.findByIdAndUpdate(
@@ -81,31 +103,14 @@ const unlockCompanyById = async (req, res, next) => {
     }
 }
 
-const findByUserId = async (req, res, next) => {
-    const { userId } = req.params
-    try {
-        const company = await Company.findOne(
-            { members: { $in: [userId] } },
-            "name address emailDomain createdAt"
-        )
-
-        if (!company) return next("Can not find this company by user")
-
-        res.json({ company })
-    } catch (error) {
-        next(error)
-    }
-
-}
-
-const showListCompany = async (_req, res, next) => {
+const getCompanies = async (_req, res, next) => {
     try {
         const companies = await Company.find(
             {},
             "name address emailDomain createdAt"
         )
 
-        if (!companies) return next("Can not show company")
+        if (!companies) throw "Can not show company"
 
         res.json({ companies })
     } catch (error) {
@@ -113,13 +118,13 @@ const showListCompany = async (_req, res, next) => {
     }
 }
 
-const getDetailById = async (req, res, next) => {
+const getCompany = async (req, res, next) => {
     const { companyId } = req.params
 
     try {
         const company = await Company.findById(companyId)
 
-        if (!company) return next("Wrong company id")
+        if (!company) throw "Wrong company id"
 
         res.json({ company })
     } catch (error) {
@@ -128,20 +133,27 @@ const getDetailById = async (req, res, next) => {
 }
 
 const addMember = async (req, res, next) => {
-    const { userId, companyId } = req.body
+    const companyId = req.params
+    const { userId } = req.body
 
     const session = await mongoose.startSession()
     session.startTransaction()
     try {
         const [company, user] = await Promise.all([
-            Company.findByIdAndUpdate(companyId, { $push: { members: userId } }).session(session),
-            User.findByIdAndUpdate(userId, { $set: { "company.id": companyId, "company.role": "employee" } }).session(session)
+            Company.findOneAndUpdate(
+                { _id: companyId, "members": { $ne: userId } },
+                { $push: { members: userId } }
+            ).session(session),
+            User.findByIdAndUpdate(
+                userId,
+                { $set: { "company.id": companyId, "company.role": "employee" } }
+            ).session(session)
         ])
 
+        if (user.company.id) throw "One person - one company"
+
         if (!company || !user)
-            throw "Can not find user or company"
-        if (user.company.id || (company.members.indexOf(userId) > -1))
-            throw "User already in company"
+            throw "Member already in company or can not find user/company"
 
         await session.commitTransaction();
         session.endSession();
@@ -157,27 +169,25 @@ const addMember = async (req, res, next) => {
 }
 
 const removeMember = async (req, res, next) => {
-    const { userId, companyId } = req.body
+    const companyId = req.params
+    const { userId } = req.body
 
     const session = await mongoose.startSession()
     session.startTransaction()
 
     try {
-        const [company, user] = await Promise.all([
+        const [company, _] = await Promise.all([
             Company.findByIdAndUpdate(companyId, { $pull: { members: userId } }).session(session),
             User.findByIdAndUpdate(userId, { $unset: { company } }).session(session)
         ])
 
-        if (!company || !user)
-            throw "Can not find user or company"
+        if (!company)
+            throw "Can not find company"
 
         await session.commitTransaction();
         session.endSession();
 
-        return res.json({
-            result: 'ok',
-            message: `Add member with id: ${userId} successfully!`,
-        })
+        return res.json({ message: `Remove member successfully!` })
     } catch (error) {
         await session.abortTransaction()
         session.endSession()
@@ -186,7 +196,8 @@ const removeMember = async (req, res, next) => {
 }
 
 const changeUserRole = async (req, res, next) => {
-    const { userId, companyId, role } = req.body
+    const companyId = req.params
+    const { userId, role } = req.body
     const signedUser = req.user
 
     if (signedUser.role != "admin" && role === "admin") {
@@ -199,9 +210,9 @@ const changeUserRole = async (req, res, next) => {
 
         if (!company) throw "Can not find company"
 
-        const user = await user.findByIdAndUpdate(userId, { "company.role": role })
+        const user = await User.findOneAndUpdate({ _id: userId, "company.id": companyId }, { "company.role": role })
 
-        if (!company) throw "Can not find user"
+        if (!user) throw "Can not find user"
 
         res.json({
             result: 'ok',
@@ -213,7 +224,8 @@ const changeUserRole = async (req, res, next) => {
 }
 
 const upgradeVip = async (req, res, next) => {
-    const { companyId, vip } = req.body
+    const companyId = req.params
+    const { vip } = req.body
 
     try {
         const value = vip.trim().toLowerCase()
@@ -271,9 +283,8 @@ const upgradeVip = async (req, res, next) => {
         if (!company) throw "Can not find company with id: " + companyId
 
         res.json({
-            result: 'ok',
             message: `Update company ${company.name} to ${vip} successfully`,
-            data: company
+            company
         })
     } catch (error) {
         next(error)
@@ -281,14 +292,13 @@ const upgradeVip = async (req, res, next) => {
 }
 
 module.exports = {
-    create,
-    update,
-    blockCompanyById,
-    unlockCompanyById,
-    findByUserId,
-    getDetailById,
-    deleteById,
-    showListCompany,
+    postCompany,
+    updateCompany,
+    blockCompany,
+    unlockCompany,
+    getCompany,
+    deleteCompany,
+    getCompanies,
     addMember,
     removeMember,
     changeUserRole,

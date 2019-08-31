@@ -1,143 +1,279 @@
 const Project = require('../models/project.model')
-const Company = require('../models/company.model')
 const User = require('../models/user.model')
+const mongoose = require('mongoose')
 
-const add = (req, res, next) => {
-    const signedInUser = req.user
-    const { title, description, companyId } = req.body
-    Promise.all([
-        Project.countDocuments({ company: companyId }),
-        Company.findById(companyId)
-    ]).then(([project, company]) => {
-        if (project >= company.limited.projects)
-            return next("Your company is limited add new project, please upggrade your account")
-        return Promise.all(
-            [
-                Project.create({
-                    title,
-                    description,
-                    company: companyId,
-                    members: [signedInUser._id]
-                }),
-                company
-            ]
+const postProject = async (req, res, next) => {
+    const { title, description } = req.body
+    const signedUser = req.user
+    try {
+        const project = await Project.create(
+            {
+                title,
+                description,
+                company: signedUser.company.id,
+                members: [signedUser._id]
+            }
         )
-    }).then(([newProject, company]) => {
-        Promise.all([
-            company.update({
-                $push: { projects: newProject._id }
-            }),
-            signedInUser.updateOne({ projects: [...signedInUser.projects, { id: newProject._id, role: "author" }] }),
-            res.json({
-                result: 'ok',
-                message: 'Add new project successfully!',
-                data: newProject
-            })
+
+        signedUser.projects.push({ id: project._id, role: "author" })
+
+        await Promise.all([
+            Company.findByIdAndUpdate(
+                signedUser.company.id,
+                { $addToSet: { projects: project._id } }
+            ),
+            signedUser.save()
         ])
-    }).catch(error => next(error))
-}
 
-const findAllInCompany = (req, res, next) => {
-    const { companyId } = req.params
-    return Project.find({ company: companyId })
-        .select("title createdAt")
-        .exec((error, document) => {
-            if (!document) return next("Can not find projects in this company")
-            if (error) return next(error)
-            res.json({
-                result: "ok",
-                message: "Find projects in company successfully!",
-                data: document
-            })
-
-        })
-}
-
-const update = async (req, res, next) => {
-    const { projectId, title, description, isHidden } = req.body
-    try {
-        const project = await Project.findById(projectId)
-        if (!project)
-            throw `Can not find project`
-        const query = {
-            ...(title && { title }),
-            ...(description && { description }),
-            ...(isHidden && { isHidden })
-        }
-        await project.updateOne(query)
-        res.json({
-            result: 'ok',
-            message: `Update project with ID: ${projectId} succesfully!`,
-        })
-    } catch (error) {
-        next("Update error: " + error)
-    }
-}
-
-const getListUsersByProjectId = async (req, res, next) => {
-    const { projectId } = req.params
-    try {
-        const project = await Project.findById(projectId)
-            .select("members")
-            .populate("members", "name")
-        if (!project) return next("Project not found")
-        res.json({
-            result: 'ok',
-            message: "Find list of users successfully",
-            data: project
-        })
+        res.json({ message: `Create project ${project.title} successfully!` })
     } catch (error) {
         next(error)
     }
 }
 
-const addMember = (req, res, next) => {
-    const { userId, role, projectId } = req.body
-    Promise.all([
-        Project.findById(projectId),
-        User.findById(userId)
-    ]).then(values => {
-        if (!values[0] || !values[1]) return next("Can not find user or project")
+const setProjectInTrash = async (req, res, next) => {
+    const { projectId } = req.params
+    try {
+        const project = await findByIdAndUpdate(projectId, { isInTrash: 1 }, { upsert: true })
 
-        Promise.all([
-            values[0].updateOne({ $push: { members: userId } }),
-            values[1].updateOne({ $push: { projects: { id: userId, role: role } } })
-        ]).then(values => {
-            return res.json({
-                result: 'ok',
-                message: `Add member with id: ${userId} successfully!`,
-            })
+        if (!project) throw "Can not find project"
+
+        res.json({ message: `Send project ${project.title} to trash successfully!` })
+    } catch (error) {
+        next(error)
+    }
+}
+
+const unsetProjectInTrash = async (req, res, next) => {
+    const { projectId } = req.params
+    try {
+        const project = await findByIdAndUpdate(projectId, { isInTrash: 0 }, { upsert: true })
+
+        if (!project) throw "Can not find project"
+
+        res.json({ message: `Restore project ${project.title} successfully!` })
+    } catch (error) {
+        next(error)
+    }
+}
+
+const hiddenProject = async (req, res, next) => {
+    const { projectId } = req.params
+    try {
+        const project = await findByIdAndUpdate(projectId, { isHidden: 1 }, { upsert: true })
+
+        if (!project) throw "Can not find project"
+
+        res.json({ message: `Hidden project ${project.title} successfully!` })
+    } catch (error) {
+        next(error)
+    }
+}
+
+const unHiddenProject = async (req, res, next) => {
+    const { projectId } = req.params
+    try {
+        const project = await findByIdAndUpdate(projectId, { isHidden: 0 }, { upsert: true })
+
+        if (!project) throw "Can not find project"
+
+        res.json({ message: `Unhidden project ${project.title} successfully!` })
+    } catch (error) {
+        next(error)
+    }
+}
+
+const deleteProject = async (req, res, next) => {
+    const { projectId } = req.params
+
+    const session = await mongoose.startSession()
+    session.startTransaction()
+    try {
+        const [project, _] = await Promise.all([
+            Project.findByIdAndDelete(projectId).session(session),
+            User.updateMany(
+                { "projects.id": projectId },
+                { $pull: { projects: { id: projectId } } }
+            ).session(session)
+        ])
+
+        if (!project)
+            throw "Can not find project or user"
+
+        const compareDate = (Date.now() - project.createdAt) / 1000
+        if (compareDate >= 864000)
+            throw "You can not delete the project created after 10 days, you only can hidden it!"
+
+        await session.commitTransaction()
+        session.endSession()
+
+        res.json({ message: "Delete project successfully!" })
+    } catch (error) {
+        session.abortTransaction()
+        session.endSession()
+
+        next(error)
+    }
+}
+
+const updateProject = async (req, res, next) => {
+    const projectId = req.params
+    const { name, address } = req.body
+
+    const query = {
+        ...(name && { name }),
+        ...(address && { address }),
+    }
+    try {
+        const project = await Project.findByIdAndUpdate(
+            projectId, query, { new: true }
+        )
+
+        if (!project) throw "Can not find project"
+
+        res.json({ message: `Update project ${project.name} successfully!`, project })
+    } catch (error) {
+        next(error)
+    }
+}
+
+const getProjects = async (req, res, next) => {
+    const companyId = req.user.company.id
+    try {
+        const projects = await Project.find(
+            { company: companyId },
+            "title createdAt"
+        )
+
+        if (!projects) throw "Can not show project"
+
+        res.json({ projects })
+    } catch (error) {
+        next(error)
+    }
+}
+
+const getProject = async (req, res, next) => {
+    const { projectId } = req.params
+
+    try {
+        const project = await Project.findById(projectId)
+
+        if (!project) throw "Wrong project id"
+
+        res.json({ project })
+    } catch (error) {
+        next(error)
+    }
+}
+
+const addMember = async (req, res, next) => {
+    const { userId, projectId } = req.body
+
+    const session = await mongoose.startSession()
+    session.startTransaction()
+    try {
+        const [project, user] = await Promise.all([
+            Project.findOneAndUpdate(
+                { _id: projectId, members: { $ne: userId } },
+                { $push: { members: userId } }
+            ).session(session),
+            User.findOneAndUpdate(
+                { _id: userId, "projects.id": { $ne: projectId } },
+                { $push: { projects: { id: projectId, role: "employee" } } }
+            ).session(session)
+        ])
+
+        if (!project || !user)
+            throw "Can not find user or project"
+
+        await session.commitTransaction();
+        session.endSession();
+
+        return res.json({
+            message: `Add member with id: ${userId} successfully!`,
         })
-    }).catch(error => next(error))
+    } catch (error) {
+        await session.abortTransaction();
+        session.endSession();
+        next(error)
+    }
 }
 
-const makeMemberBecomeManager = async (req, res, next) => {
-    const { userId, companyId } = req.params
+const removeMember = async (req, res, next) => {
+    const { userId, projectId } = req.body
 
+    const session = await mongoose.startSession()
+    session.startTransaction()
 
+    try {
+        const [project, _] = await Promise.all([
+            Project.findByIdAndUpdate(projectId, { $pull: { members: userId } }).session(session),
+            User.findByIdAndUpdate(userId, { $unset: { "projects.id": projectId } }).session(session)
+        ])
+
+        if (!project)
+            throw "Can not find project"
+
+        await session.commitTransaction();
+        session.endSession();
+
+        return res.json({ message: `Remove member successfully!` })
+    } catch (error) {
+        await session.abortTransaction()
+        session.endSession()
+        next(error)
+    }
 }
 
-const makeManagerBecomeMember = async (req, res, next) => {
-    const { userId, companyId } = req.params
+const changeUserRole = async (req, res, next) => {
+    const { userId, projectId, role } = req.body
+    const signedUser = req.user
 
+    if (signedUser.role != "admin" && role === "admin") {
+        //Only admin can make user become admin. If not, role = manager
+        role = "manager"
+    }
 
-}
+    const session = await mongoose.startSession()
+    session.startTransaction()
+    try {
+        const [project, user] = await Promise.all([
+            Project.findById(projectId),
+            User.findOneAndUpdate(
+                { _id: userId, "projects.id": projectId },
+                { $set: { "projects.$.role": role } }
+            ).session(session)
+        ])
 
-const RemoveMember = async (req, res, next) => {
-    const { userId, companyId } = req.params
+        if (!user || !project) throw "Can not find user/project or user not a member in project"
 
+        await session.commitTransaction()
+        session.endSession()
 
-}
+        res.json({
+            result: 'ok',
+            message: `${user.name} is now ${role} of project: ${project.name}!`,
+        })
+    } catch (error) {
+        await session.abortTransaction()
+        session.endSession()
 
-const findProject = (projectId) => {
-    return Project.findById(projectId)
+        next(error)
+    }
 }
 
 module.exports = {
-    add,
-    update,
-    findAllInCompany,
-    getListUsersByProjectId,
-    findProject,
-    addMember
+    postProject,
+    setProjectInTrash,
+    unsetProjectInTrash,
+    hiddenProject,
+    unHiddenProject,
+    deleteProject,
+    updateProject,
+    getProjects,
+    getProject,
+    addMember,
+    removeMember,
+    changeUserRole
 }

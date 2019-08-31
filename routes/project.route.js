@@ -1,89 +1,51 @@
 const express = require('express')
 const router = express.Router()
-const projectController = require('../controllers/project.controller')
+const project = require('../controllers/project.controller')
 const authentication = require('../middlewares/auth.middleware')
-const {
-    isAdmin, isCompanyMember, isCompanyManager,
-    isProjectMember, isProjectAuthor, checkPermit
-} = require('../middlewares/permistion.middleware')
+const { checkPermit, inProject, inUser, inCompany } = require('../middlewares/permistion.middleware')
 
-// const getCompanyIdFromProjectId()
-
-//Header: x-access-token-key
-//Body: title, description, companyId
-router.post('/add',
+router.post('/',
     authentication.required,
-    (req, res, next) => {
-        const user = req.user
-        const { companyId } = req.body
-        const permit = checkPermit(
-            isAdmin(user),
-            isCompanyManager(user, companyId)
-        )
-        if (permit) return next()
-        else return next("You don't have authorization to do this action!")
-    },
-    projectController.add)
-
-//Header: x-access-token-key
-//Query: companyId
-router.get('/find-all-in-company/:companyId',
+    checkPermit(inCompany("self", "manager")),
+    project.postProject
+)
+router.get('/',
     authentication.required,
-    (req, res, next) => {
-        const user = req.user
-        const { companyId } = req.params
-        const permit = checkPermit(
-            isCompanyMember(user, companyId)
-        )
-        if (permit) return next()
-        else return next("You don't have authorization to do this action!")
-    },
-    projectController.findAllInCompany
+    checkPermit(inUser("admin")),
+    project.getProjects
 )
 
-// Header: x-access-token-key
-// Body: projectId, title, description, companyId
-router.put('/update',
+router.get('/:projectId',
     authentication.required,
-    async (req, res, next) => {
-        try {
-            const { user } = req
-            const project = await projectController.findProject(req.body.projectId)
-            if (!project) return next("Can not find project")
-            const permit = checkPermit(
-                isCompanyManager(user, project.company),
-                isProjectAuthor(user, req.body.projectId)
-            )
-            if (permit) return next()
-            else return next("You don't have authorization to do this action!")
-        } catch (error) {
-            next(error)
-        }
-    },
-    projectController.update
+    project.getProject
+)
+router.put('/:projectId',
+    authentication.required,
+    checkPermit(inProject("body", "manager")),
+    project.updateProject
+)
+router.delete('/:projectId',
+    authentication.required,
+    checkPermit(inCompany("self", "manager"), inProject("self", "author")),
+    project.deleteProject
 )
 
-// Header: x-access-token-key
-//Param: projectId
-router.get('/get-list-users/:projectId',
+router.post('/change-user-role',
     authentication.required,
-    async (req, res, next) => {
-        try {
-            const { user } = req
-            const project = await projectController.findProject(req.params.projectId)
-            if (!project) return next("Can not find project")
-            const permit = checkPermit(
-                isCompanyMember(user, project.company)
-            )
-            if (permit) return next()
-            else return next("You don't have authorization to do this action!")
-        } catch (error) {
-            next(error)
-        }
-    },
-    projectController.getListUsersByProjectId
+    checkPermit(inUser("admin")),
+    project.changeUserRole
 )
 
-router.post('/add-member', projectController.addMember)
+router.post('/add-member',
+    authentication.required,
+    checkPermit(inUser("admin"), inProject("self", "employee")),
+    project.addMember
+)
+
+router.post('/remove-member',
+    authentication.required,
+    checkPermit(inProject("self", "manager")),
+    project.removeMember
+)
 
 module.exports = router

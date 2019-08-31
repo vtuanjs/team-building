@@ -2,7 +2,14 @@ const isAllowed = (roleCheck, rolesAllowed) => {
     return rolesAllowed.indexOf(roleCheck) > -1
 }
 
-module.exports.inUser = (...allowed) => {
+const isUserSelf = () => {
+    return (req) => {
+        if (req.user && req.user._id.equals(req.params.userId)) return true
+        else return false
+    }
+}
+
+const inUser = (...allowed) => {
     //The manager will have user rights
     if (allowed.indexOf("user") > -1) {
         allowed.push("manager")
@@ -14,7 +21,7 @@ module.exports.inUser = (...allowed) => {
     }
 }
 
-module.exports.inCompany = (compareFrom, ...allowed) => {
+const inCompany = (compareFrom, ...allowed) => {
     if (allowed.indexOf("employee") > -1) {
         allowed.push("manager")
     }
@@ -45,14 +52,14 @@ module.exports.inCompany = (compareFrom, ...allowed) => {
     }
 }
 
-module.exports.inProject = (compareFrom, ...allowed) => {
-    const signedUser = req.user
-
+const inProject = (compareFrom, ...allowed) => {
     if (allowed.indexOf("employee") > -1) {
         allowed.push("manager")
     }
-
+    
     return async (req, _res) => {
+        const signedUser = req.user
+
         let projectId
         switch (compareFrom) {
             case "body":
@@ -78,7 +85,7 @@ module.exports.inProject = (compareFrom, ...allowed) => {
     }
 }
 
-module.exports.inPlant = (compareFrom, ...allowed) => {
+const inPlant = (compareFrom, ...allowed) => {
     const signedUser = req.user
 
     if (allowed.indexOf("employee") > -1) {
@@ -111,7 +118,7 @@ module.exports.inPlant = (compareFrom, ...allowed) => {
     }
 }
 
-module.exports.inJob = (compareFrom, ...allowed) => {
+const inJob = (compareFrom, ...allowed) => {
     const signedUser = req.user
 
     if (allowed.indexOf("employee") > -1) {
@@ -144,7 +151,7 @@ module.exports.inJob = (compareFrom, ...allowed) => {
     }
 }
 
-module.exports.checkPermit = (...checks) => {
+const checkPermit = (...checks) => {
     return (req, res, next) => {
         for (let i = 0; i < checks.length; i++) {
             if (checks[i](req, res, next)) {
@@ -155,4 +162,14 @@ module.exports.checkPermit = (...checks) => {
             message: "You don't have authorization to do this action!"
         })
     }
+}
+
+module.exports = {
+    isUserSelf,
+    inUser,
+    inCompany,
+    inProject,
+    inPlant,
+    inJob,
+    checkPermit
 }

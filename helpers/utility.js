@@ -1,5 +1,7 @@
-const PORT = 3000
-const HOST = 'localhost'
+const PORT = process.env.PORT || 3000
+const HOST = process.env.HOST || 'localhost'
+const EMAIL_USER = process.env.EMAIL_USER
+const EMAIL_PASS = process.env.EMAIL_PASS
 const allowAccessIP = '*'
 const nodemailer = require('nodemailer')
 const sendEmail = async (receiverEmail, secretKey) => {
@@ -7,9 +9,9 @@ const sendEmail = async (receiverEmail, secretKey) => {
         let transporter = nodemailer.createTransport({
             service: 'gmail',
             auth: {
-                user: 'dr7@amavi.asia',
-                pass: '12345678'
-            }
+                user: EMAIL_USER,
+                pass: EMAIL_PASS
+            }                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
         })
         let mailOptions = {
             from: 'Nguyen Van Tuan: <dr7@amavi.asia>',

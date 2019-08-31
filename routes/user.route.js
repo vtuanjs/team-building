@@ -1,29 +1,43 @@
 const express = require('express')
 const router = express.Router()
-const userController = require('../controllers/user.controller')
+const user = require('../controllers/user.controller')
 const authentication = require('../middlewares/auth.middleware')
-const { checkPermit, inUser } = require('../middlewares/permistion.middleware')
+const { checkPermit, inUser, isUserSelf } = require('../middlewares/permistion.middleware')
 
 //Body: name, email, password
-router.post('/register-user', userController.create)
+router.post('/', user.postUser)
 
-router.put('/update',
+
+router.get('/', user.getUsers)
+
+router.get('/:userId', user.getUser)
+
+router.put('/:userId',
     authentication.required,
-    userController.update
+    checkPermit(isUserSelf(), inUser("admin")),
+    user.updateUser
 )
 
-router.get(
-    '/get-detail/:userId',
+router.delete('/:userId',
     authentication.required,
-    userController.getDetailById
+    checkPermit(inUser("admin")),
+    user.deleteUser
 )
 
-router.get(
-    '/get-all-user',
+router.get('/find-by-email/:email', user.findByEmail)
+
+router.post(
+    '/:userIds/block',
     authentication.required,
-    userController.getAllUser
+    checkPermit(inUser("admin")),
+    user.blockUsers
 )
 
-router.get('/find-by-email/:email', userController.findByEmail)
+router.post(
+    '/:userIds/unlock',
+    authentication.required,
+    checkPermit(inUser("admin")),
+    user.unlockUsers
+)
 
 module.exports = router

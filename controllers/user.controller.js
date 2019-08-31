@@ -2,45 +2,61 @@ const bcrypt = require('bcrypt')
 const User = require('../models/user.model')
 const Company = require('../models/company.model')
 
-const addCompanyMemberByEmailDomain = async (user, emailDomain) => {
-    try {
-        const updatedCompany = await
-            Company.findOneAndUpdate({ emailDomain }, { $push: { members: user._id } })
-        if (!updatedCompany) return
-        else {
-            user.company.id = updatedCompany._id
-            await user.save()
-        }
-    } catch (error) {
-        throw error
-    }
-}
-
-const create = async (req, res, next) => {
+const postUser = async (req, res, next) => {
     const { name, email, password } = req.body
     try {
         const emailDomain = email.toLowerCase().split("@")[1]
         const encryptedPassword = await bcrypt.hash(password, 10)//saltRounds = 10
 
-        const newUser = await User.create({
+        const user = await User.create({
             name,
             email,
             password: encryptedPassword
         })
 
-        await addCompanyMemberByEmailDomain(newUser, emailDomain)
+        // If user email domain = company email domain, auto add this user to company
+        const updatedCompany = await
+            Company.findOneAndUpdate({ emailDomain }, { $push: { members: user._id } })
+        if (updatedCompany) {
+            user.company.id = updatedCompany._id
+            await user.save()
+        }
 
-        res.json({ message: `Create user ${newUser.name} successfully!` })
+        res.json({ message: `Create user ${newUser.name} successfully!`, user })
     } catch (error) {
         if (error.code === 11000) error = "Email already exists"
         next(error)
     }
 }
 
-const update = async (req, res, next) => {
-    let { name, gender, phone, address, password, oldPassword } = req.body
+const createAdmin = async (req, res, next) => {
+    const { name, email, password } = req.body
     try {
-        const user = req.user
+        let isAdminExist = await User.findOne({ role: "admin" })
+        if (isAdminExist) {
+            throw "This function only use one time!"
+        }
+
+        const encryptedPassword = await bcrypt.hash(password, 10)//saltRounds = 10
+
+        const user = await User.create({
+            name,
+            email,
+            role: "admin",
+            password: encryptedPassword
+        })
+
+        res.json({ message: `Create admin ${newUser.name} successfully!`, user })
+    } catch (error) {
+        next(error)
+    }
+}
+
+const updateUser = async (req, res, next) => {
+    let { name, gender, phone, address, password, oldPassword } = req.body
+    const userId = req.params.userId
+    try {
+        let user = await User.findById(userId)
 
         if (password) {
             const checkPassword = await bcrypt.compare(oldPassword, user.password)
@@ -58,16 +74,17 @@ const update = async (req, res, next) => {
             ...(password && { password }),
         }
 
-        await user.updateOne(query)
+        Object.assign(user, query)
+        await user.save()
 
-        res.json({ message: `Update user with ID: ${user._id} succesfully!` })
+        res.json({ message: `Update user with ID: ${user._id} succesfully!`, user })
     } catch (error) {
         next("Update error: " + error)
     }
 }
 
-const blockByIds = async (req, res, next) => {
-    const { userIds } = req.body
+const blockUsers = async (req, res, next) => {
+    const { userIds } = req.params
     const signedUser = req.user
     try {
         const arrayUserIds = userIds.split(',').map(item => {
@@ -89,8 +106,8 @@ const blockByIds = async (req, res, next) => {
     }
 }
 
-const unlockByIds = async (req, res, next) => {
-    const { userIds } = req.body
+const unlockUsers = async (req, res, next) => {
+    const { userIds } = req.params
     try {
         const arrayUserIds = userIds.split(',').map(item => {
             return item.trim()
@@ -107,10 +124,22 @@ const unlockByIds = async (req, res, next) => {
     }
 }
 
+const deleteUser = async (req, res, next) => {
+    const { userId } = req.params
+    try {
+        await User.deleteOne({_id: userId})
+
+        res.json({ message: "Delete user successfully!" })
+    } catch (error) {
+        next(error)
+    }
+}
+
 const findByEmail = async (req, res, next) => {
     const { email } = req.params
     try {
-        const foundUser = await User.findOne({ email: email.trim().toLowerCase() }).select("name email")
+        const foundUser = await User.findOne({ email: email.trim().toLowerCase() }).select("name email company")
+            .populate("company.id", "name")
 
         if (!foundUser) throw "Nothing"
 
@@ -120,7 +149,7 @@ const findByEmail = async (req, res, next) => {
     }
 }
 
-const getDetailById = async (req, res, next) => {
+const getUser = async (req, res, next) => {
     const userId = req.params.userId
 
     const query = req.user.role === "admin" ? { _id: userId } :
@@ -131,23 +160,23 @@ const getDetailById = async (req, res, next) => {
             .select("-password -isActive -isBanned")
             .populate([
                 {
-                    path: "company",
+                    path: "company.id",
                     select: "name"
                 },
                 {
-                    path: "project",
+                    path: "projects.id",
                     select: "title"
                 },
                 {
-                    path: "plants",
+                    path: "plants.id",
                     select: "title"
                 },
                 // {
-                //     path: "jobs",
+                //     path: "jobs.id",
                 //     select: "title"
                 // },
                 {
-                    path: "teams",
+                    path: "teams.id",
                     select: "name"
                 },
                 // {
@@ -156,7 +185,7 @@ const getDetailById = async (req, res, next) => {
                 // }
             ])
 
-        if (!foundUser) next("Can not find this user")
+        if (!foundUser) throw "User is not exist"
 
         res.json({ user: foundUser })
     } catch (error) {
@@ -164,7 +193,7 @@ const getDetailById = async (req, res, next) => {
     }
 }
 
-const getAllUser = async (_req, res, next) => {
+const getUsers = async (_req, res, next) => {
     try {
         const foundUsers = await User.find().select("name email createdAt")
 
@@ -177,11 +206,13 @@ const getAllUser = async (_req, res, next) => {
 }
 
 module.exports = {
-    create,
-    update,
-    blockByIds,
-    unlockByIds,
-    getDetailById,
-    getAllUser,
-    findByEmail
+    postUser,
+    createAdmin,
+    updateUser,
+    blockUsers,
+    unlockUsers,
+    deleteUser,
+    findByEmail,
+    getUser,
+    getUsers
 }
