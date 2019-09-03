@@ -22,14 +22,14 @@ const postUser = async (req, res, next) => {
             await user.save()
         }
 
-        res.json({ message: `Create user ${newUser.name} successfully!`, user })
+        res.json({ message: `Create user ${user.name} successfully!`, user })
     } catch (error) {
         if (error.code === 11000) error = "Email already exists"
         next(error)
     }
 }
 
-const createAdmin = async (req, res, next) => {
+const postAdmin = async (req, res, next) => {
     const { name, email, password } = req.body
     try {
         let isAdminExist = await User.findOne({ role: "admin" })
@@ -46,7 +46,7 @@ const createAdmin = async (req, res, next) => {
             password: encryptedPassword
         })
 
-        res.json({ message: `Create admin ${newUser.name} successfully!`, user })
+        res.json({ message: `Create admin ${user.name} successfully!`, user })
     } catch (error) {
         next(error)
     }
@@ -95,12 +95,12 @@ const blockUsers = async (req, res, next) => {
             throw "Can not block your self"
         }
 
-        await User.updateMany(
+        const raw = await User.updateMany(
             { _id: { $in: arrayUserIds } },
             { $set: { isBanned: 1 } },
         )
 
-        res.json({ message: "Block users successfully!" })
+        res.json({ message: "Block users successfully!", raw })
     } catch (error) {
         next(error)
     }
@@ -113,12 +113,12 @@ const unlockUsers = async (req, res, next) => {
             return item.trim()
         })
 
-        await User.updateMany(
+        const raw = await User.updateMany(
             { _id: { $in: arrayUserIds } },
             { $set: { isBanned: 0 } }
         )
 
-        res.json({ message: "Unlock users successfully!" })
+        res.json({ message: "Unlock users successfully!", raw })
     } catch (error) {
         next(error)
     }
@@ -127,9 +127,9 @@ const unlockUsers = async (req, res, next) => {
 const deleteUser = async (req, res, next) => {
     const { userId } = req.params
     try {
-        await User.deleteOne({_id: userId})
+        const raw = await User.deleteOne({ _id: userId })
 
-        res.json({ message: "Delete user successfully!" })
+        res.json({ message: "Delete user successfully!", raw })
     } catch (error) {
         next(error)
     }
@@ -138,8 +138,7 @@ const deleteUser = async (req, res, next) => {
 const findByEmail = async (req, res, next) => {
     const { email } = req.params
     try {
-        const foundUser = await User.findOne({ email: email.trim().toLowerCase() }).select("name email company")
-            .populate("company.id", "name")
+        const foundUser = await User.findOne({ email: email.trim().toLowerCase() }).select("name email")
 
         if (!foundUser) throw "Nothing"
 
@@ -152,11 +151,8 @@ const findByEmail = async (req, res, next) => {
 const getUser = async (req, res, next) => {
     const userId = req.params.userId
 
-    const query = req.user.role === "admin" ? { _id: userId } :
-        { _id: userId, company: req.user.company.id }
-
     try {
-        const foundUser = await User.findOne(query)
+        const foundUser = await User.findById(userId)
             .select("-password -isActive -isBanned")
             .populate([
                 {
@@ -197,7 +193,7 @@ const getUsers = async (_req, res, next) => {
     try {
         const foundUsers = await User.find().select("name email createdAt")
 
-        if (!foundUsers) next("Can not show list of users")
+        if (!foundUsers) throw "Can not show list of users"
 
         res.json({ users: foundUsers })
     } catch (error) {
@@ -207,7 +203,7 @@ const getUsers = async (_req, res, next) => {
 
 module.exports = {
     postUser,
-    createAdmin,
+    postAdmin,
     updateUser,
     blockUsers,
     unlockUsers,

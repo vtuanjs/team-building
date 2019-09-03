@@ -6,7 +6,7 @@
   "scripts": {
     "start": "nodemon server.js",
     "debug": "node --inspect index.js",
-    "test": "mocha --recursive --exit"
+    "test": "mocha --no-deprecation --timeout 6000 --recursive --exit"
   },
   "author": "Nguyen Van Tuan",
   "license": "ISC",
@@ -24,7 +24,7 @@
   "devDependencies": {
     "chai": "^4.2.0",
     "mocha": "^6.2.0",
-    "mockgoose": "^8.0.2",
+    "mongodb-memory-server": "^5.2.0",
     "supertest": "^4.0.2"
   }
 }

@@ -7,10 +7,27 @@ const { checkPermit, inUser, isUserSelf } = require('../middlewares/permistion.m
 //Body: name, email, password
 router.post('/', user.postUser)
 
+router.post('/admin/', user.postAdmin)
+
+router.post(
+    '/admin/:userIds/block',
+    authentication.required,
+    checkPermit(inUser("admin")),
+    user.blockUsers
+)
+
+router.post(
+    '/admin/:userIds/unlock',
+    authentication.required,
+    checkPermit(inUser("admin")),
+    user.unlockUsers
+)
 
 router.get('/', user.getUsers)
 
 router.get('/:userId', user.getUser)
+
+router.get('/find-by-email/:email', user.findByEmail)
 
 router.put('/:userId',
     authentication.required,
@@ -18,26 +35,10 @@ router.put('/:userId',
     user.updateUser
 )
 
-router.delete('/:userId',
+router.delete('/admin/:userId',
     authentication.required,
     checkPermit(inUser("admin")),
     user.deleteUser
-)
-
-router.get('/find-by-email/:email', user.findByEmail)
-
-router.post(
-    '/:userIds/block',
-    authentication.required,
-    checkPermit(inUser("admin")),
-    user.blockUsers
-)
-
-router.post(
-    '/:userIds/unlock',
-    authentication.required,
-    checkPermit(inUser("admin")),
-    user.unlockUsers
 )
 
 module.exports = router

@@ -22,7 +22,7 @@ app.use('/team/', require('./routes/team.route'))
 app.use('/comment/', require('./routes/comment.route'))
 
 app.use((error, _req, res, _next) => {
-    res.status(500).json({ message: "Something went wrong! " + error })
+    res.status(400).json({ message: "Something went wrong! " + error })
 });
 
 module.exports = app
