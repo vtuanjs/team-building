@@ -5,6 +5,10 @@ const Company = require('../models/company.model')
 const postUser = async (req, res, next) => {
     const { name, email, password } = req.body
     try {
+        const pwdRegex = new RegExp('^(?=.*[a-z])(?=.*[0-9])(?=.{8,})')
+        if (!password.match(pwdRegex)) {
+            throw "Password must be eight characters or longer, must contain at least 1 numeric character, 1 lowercase charater"
+        }
         const emailDomain = email.toLowerCase().split("@")[1]
         const encryptedPassword = await bcrypt.hash(password, 10)//saltRounds = 10
 
@@ -59,7 +63,14 @@ const updateUser = async (req, res, next) => {
         let user = await User.findById(userId)
 
         if (password) {
+            const pwdRegex = new RegExp('^(?=.*[a-z])(?=.*[0-9])(?=.{8,})')
+
+            if (!password.match(pwdRegex)) {
+                throw "Password must be eight characters or longer, must contain at least 1 numeric character, 1 lowercase charater"
+            }
+
             const checkPassword = await bcrypt.compare(oldPassword, user.password)
+
             if (!checkPassword) throw "Old password wrong"
             else {
                 password = await bcrypt.hash(password, 10)
@@ -135,7 +146,7 @@ const deleteUser = async (req, res, next) => {
     }
 }
 
-const findByEmail = async (req, res, next) => {
+const getByEmail = async (req, res, next) => {
     const { email } = req.params
     try {
         const foundUser = await User.findOne({ email: email.trim().toLowerCase() }).select("name email")
@@ -208,7 +219,7 @@ module.exports = {
     blockUsers,
     unlockUsers,
     deleteUser,
-    findByEmail,
+    getByEmail,
     getUser,
     getUsers
 }

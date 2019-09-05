@@ -44,7 +44,7 @@ const inCompany = (compareFrom, ...allowed) => {
                 break;
         }
 
-        if (signedUser && signedUser.company.id.equals(companyId)
+        if (signedUser && signedUser.company.id && signedUser.company.role && signedUser.company.id.equals(companyId)
             && isAllowed(signedUser.company.role, allowed))
             return true
 

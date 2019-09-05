@@ -3,15 +3,26 @@ const User = require('../models/user.model')
 const mongoose = require('mongoose')
 
 const postCompany = async (req, res, next) => {
-    const { name, address, emailDomain } = req.body
+    let { name, address, emailDomain } = req.body
     const signedUser = req.user
     try {
         if (signedUser.company.id) throw "One person - one company"
+        if (emailDomain) {
+            if (signedUser.role != "admin") {
+                emailDomain = signedUser.email.split('@')[1]
+            }
+            if (emailDomain.trim().toLowerCase() === "gmail.com") throw "Can not create company with this email domain"
+        }
 
-        const company = await Company.create({ name, address, emailDomain, members: [signedUser._id] })
+        let company
+        if (signedUser.role != "admin") {
+            company = await Company.create({ name, address, emailDomain, members: [signedUser._id] })
 
-        signedUser.company = { id: company._id, role: "manager" }
-        await signedUser.save()
+            signedUser.company = { id: company._id, role: "manager" }
+            await signedUser.save()
+        } else {
+            company = await Company.create({ name, address, emailDomain })
+        }
 
         res.json({ message: `Create company ${company.name} successfully!`, company })
     } catch (error) {
@@ -21,39 +32,27 @@ const postCompany = async (req, res, next) => {
 
 const deleteCompany = async (req, res, next) => {
     const { companyId } = req.params
-
-    const session = await mongoose.startSession()
-    session.startTransaction()
     try {
         const [company, user] = await Promise.all([
-            Company.findByIdAndDelete(companyId).session(session),
+            Company.findByIdAndDelete(companyId),
             User.updateMany(
                 { "company.id": companyId },
-                { $unset: { "company.id": companyId } }
-            ).session(session)
+                { $unset: { "company.id": companyId }, },
+            )
         ])
 
         if (!company)
             throw "Can not find company with id: " + companyId
 
-        const compareDate = (Date.now() - company.createdAt) / 1000
-        if (compareDate >= 86400)
-            throw "You can not delete the company created after 10 days, you only can block it!"
-
-        await session.commitTransaction()
-        session.endSession()
-
         res.json({ message: "Delete company successfully!" })
     } catch (error) {
-        session.abortTransaction()
-        session.endSession()
 
         next(error)
     }
 }
 
 const updateCompany = async (req, res, next) => {
-    const companyId = req.params
+    const companyId = req.params.companyId
     const { name, address } = req.body
 
     const query = {
@@ -68,36 +67,6 @@ const updateCompany = async (req, res, next) => {
         if (!company) throw "Can not find company"
 
         res.json({ message: `Update company ${company.name} successfully!`, company })
-    } catch (error) {
-        next(error)
-    }
-}
-
-const blockCompany = async (req, res, next) => {
-    const { companyId } = req.params
-    try {
-        const company = await Company.findByIdAndUpdate(
-            companyId, { isBanned: 1 }, { upsert: true }
-        )
-
-        if (!company) throw "Can not find company"
-
-        res.json({ message: `Block company with name: ${company.name} successfully!` })
-    } catch (error) {
-        next(error)
-    }
-}
-
-const unlockCompany = async (req, res, next) => {
-    const { companyId } = req.params
-    try {
-        const company = await Company.findByIdAndUpdate(
-            companyId, { isBanned: 0 }, { upsert: true }
-        )
-
-        if (!company) throw "Can not find company"
-
-        res.json({ message: `Unlock company with name: ${company.name} successfully!` })
     } catch (error) {
         next(error)
     }
@@ -132,38 +101,47 @@ const getCompany = async (req, res, next) => {
     }
 }
 
+const getCompanyByEmailDomain = async (req, res, next) => {
+    const emailDomain = req.params.emailDomain
+    try {
+        const company = await Company.findOne({ emailDomain }).select('name')
+
+        if (!company) throw "Can not find company with this email domain"
+
+        res.json({ company })
+    } catch (error) {
+        next(error)
+    }
+}
+
 const addMember = async (req, res, next) => {
-    const companyId = req.params
+    const { companyId } = req.params
     const { userId } = req.body
 
     const session = await mongoose.startSession()
-    session.startTransaction()
     try {
-        const [company, user] = await Promise.all([
-            Company.findOneAndUpdate(
-                { _id: companyId, "members": { $ne: userId } },
-                { $push: { members: userId } }
-            ).session(session),
-            User.findByIdAndUpdate(
-                userId,
-                { $set: { "company.id": companyId, "company.role": "employee" } }
-            ).session(session)
-        ])
+        await session.withTransaction(async () => {
+            const [company, user] = await Promise.all([
+                Company.findOneAndUpdate(
+                    { _id: companyId, "members": { $ne: userId } },
+                    { $push: { members: userId } }
+                ).session(session),
 
-        if (user.company.id) throw "One person - one company"
+                User.findByIdAndUpdate(
+                    userId,
+                    { $set: { "company.id": companyId, "company.role": "employee" } }
+                ).session(session)
+            ])
 
-        if (!company || !user)
-            throw "Member already in company or can not find user/company"
+            if (user.company.id) throw "One person - one company"
+            if (!company || !user)
+                throw "Member already in company or can not find user/company"
 
-        await session.commitTransaction();
-        session.endSession();
-
-        return res.json({
-            message: `Add member with id: ${userId} successfully!`,
+            return res.json({
+                message: `Add member with id: ${userId} successfully!`,
+            })
         })
     } catch (error) {
-        await session.abortTransaction();
-        session.endSession();
         next(error)
     }
 }
@@ -294,11 +272,10 @@ const upgradeVip = async (req, res, next) => {
 module.exports = {
     postCompany,
     updateCompany,
-    blockCompany,
-    unlockCompany,
     getCompany,
     deleteCompany,
     getCompanies,
+    getCompanyByEmailDomain,
     addMember,
     removeMember,
     changeUserRole,

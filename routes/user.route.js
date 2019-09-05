@@ -27,7 +27,7 @@ router.get('/', user.getUsers)
 
 router.get('/:userId', user.getUser)
 
-router.get('/find-by-email/:email', user.findByEmail)
+router.get('/get-by-email/:email', user.getByEmail)
 
 router.put('/:userId',
     authentication.required,

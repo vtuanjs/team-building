@@ -5,8 +5,7 @@ const ObjectId = mongoose.Schema.Types.ObjectId
 const CompanySchema = new Schema({
     name: { type: String, required: true },
     address: { type: String, default: "" },
-    emailDomain: { type: String, lowercase: true, match: /^(([\w-]+\.)+[\w-]{2,4})?$/, unique: true, required: true },
-    isClosed: { type: Number, default: 0 },
+    emailDomain: { type: String, lowercase: true, match: /^(([\w-]+\.)+[\w-]{2,4})?$/, unique: true },
     projects: [{ type: ObjectId, ref: "Project" }],
     members: [{ type: ObjectId, ref: "User" }],
     limited: {

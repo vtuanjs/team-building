@@ -6,7 +6,7 @@
   "scripts": {
     "start": "nodemon server.js",
     "debug": "node --inspect index.js",
-    "test": "mocha --no-deprecation --timeout 6000 --recursive --exit"
+    "test": "mocha --no-deprecation --timeout 60000 --recursive --exit"
   },
   "author": "Nguyen Van Tuan",
   "license": "ISC",

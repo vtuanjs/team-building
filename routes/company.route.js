@@ -13,33 +13,24 @@ router.get('/',
     company.getCompanies
 )
 
+router.get('/get-by-email-domain/:emailDomain',
+    company.getCompanyByEmailDomain
+)
+
+router.get('/:companyId',
+    company.getCompany
+)
+
 router.put('/:companyId',
     authentication.required,
     checkPermit(inCompany("body", "manager"), inUser("admin")),
     company.updateCompany
 )
 
-router.get('/:companyId',
-    authentication.required,
-    company.getCompany
-)
-
 router.delete('/:companyId',
     authentication.required,
     checkPermit(inUser("admin")),
     company.deleteCompany
-)
-
-router.post('/:companyId/block',
-    authentication.required,
-    checkPermit(inUser("admin")),
-    company.blockCompany
-)
-
-router.post('/:companyId/unlock',
-    authentication.required,
-    checkPermit(inUser("admin")),
-    company.unlockCompany
 )
 
 router.post('/:companyId/add-member',

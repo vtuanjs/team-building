@@ -1,6 +1,5 @@
 const mongoose = require('mongoose')
-const { MongoMemoryReplSet, MongoMemoryServer } = require('mongodb-memory-server')
-const mongoServer = new MongoMemoryServer()
+const { MongoMemoryReplSet } = require('mongodb-memory-server')
 
 mongoose.set('useFindAndModify', false);
 const connect = async () => {
@@ -13,10 +12,20 @@ const connect = async () => {
             useUnifiedTopology: true
         }
         if (process.env.NODE_ENV === 'test') {
-            const replSet = new MongoMemoryReplSet();
+            const replSet = new MongoMemoryReplSet({
+                instanceOpts: [
+                    { storageEngine: "wiredTiger" }
+                ]
+            });
+
             await replSet.waitUntilRunning();
-            const mongoUri = await mongoServer.getConnectionString()
-            await mongoose.connect(mongoUri, options)
+            const uri = `${await replSet.getConnectionString()}?replicaSet=testset`;
+
+            await mongoose.connect(
+                uri,
+                options
+            );
+
             console.log('Connect database successfully!')
         } else {
             await mongoose.connect(url, options)
@@ -30,7 +39,6 @@ const connect = async () => {
 const close = async () => {
     if (process.env.NODE_ENV === 'test') {
         await mongoose.disconnect();
-        await mongoServer.stop();
     } else {
         return mongoose.disconnect()
     }
