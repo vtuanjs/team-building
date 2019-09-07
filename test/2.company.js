@@ -2,11 +2,12 @@ process.env.NODE_ENV = 'test'
 
 const expect = require('chai').expect
 const request = require('supertest')
-
 const app = require('../app')
 
-let signedUserTokenKey = ''
+let signedUserTokenKey = '' // Save user login tokenkey
 let companyIdEdited = '' // Use to update, delete this company with Id
+let userIds // Array user will add to company
+let userId // Set this user to company manager
 
 describe('POST /auth/login', () => {
     it('Ok, login admin again', done => {
@@ -127,6 +128,7 @@ describe('GET /company', () => {
                 const body = res.body
                 expect(res.statusCode).to.equals(200)
                 expect(body).to.contain.property('companies')
+                expect(body.companies.length).to.equals(4)
                 done()
             })
             .catch((error) => done(error))
@@ -175,7 +177,6 @@ describe('PUT /company/:companyId', () => {
     })
 })
 
-
 describe('DELETE /company/:companyId', () => {
     it('OK, delete company', done => {
         request(app).delete(`/company/${companyIdEdited}`)
@@ -202,16 +203,14 @@ describe('GET /company/get-by-email-domain', () => {
     })
 })
 
-let memberId
-
-describe('GET /user/get-by-email/:email', () => {
+describe('GET /user/get-by-email-domain/:emailDomain', () => {
     it('OK, find user by email', done => {
-        request(app).get('/user/get-by-email/' + "tuan.nv@amavi.asia")
+        request(app).get('/user/get-by-email-domain/' + "amavi.asia")
             .then(res => {
                 const body = res.body
                 expect(res.statusCode).to.equals(200)
-                expect(body).to.contain.property('user')
-                memberId = body.user._id
+                expect(body).to.contain.property('users')
+                userIds = body.users.map( user => user._id)
                 // Save userId to global variable and use it to get detail, update, delete user
                 done()
             })
@@ -219,11 +218,11 @@ describe('GET /user/get-by-email/:email', () => {
     })
 })
 
-describe('POST /company/:companyId/add-member', () => {
+describe('POST /company/:companyId/add-members', () => {
     it('OK, add member', done => {
-        request(app).post(`/company/${companyIdEdited}/add-member`)
+        request(app).post(`/company/${companyIdEdited}/add-members`)
         .set({ "x-access-token": signedUserTokenKey })
-        .send({userId: memberId})
+        .send({userIds})
         .then(res => {
             expect(res.statusCode).to.equals(200)
             done()
@@ -232,11 +231,65 @@ describe('POST /company/:companyId/add-member', () => {
     })
 
     it('Fail, wrong memberId', done => {
-        request(app).post(`/company/${companyIdEdited}/add-member`)
+        request(app).post(`/company/${companyIdEdited}/add-members`)
         .set({ "x-access-token": signedUserTokenKey })
-        .send({userId: "5d70d3ccee62e71cd16591a3"})
+        .send({userIds: "5d70d3ccee62e71cd16591a3"})
         .then(res => {
             expect(res.statusCode).to.equals(400)
+            done()
+        })
+        .catch((error) => done(error))
+    })
+})
+
+describe('POST /company/:companyId/remove-member', () => {
+    it('OK, remove member', done => {
+        request(app).post(`/company/${companyIdEdited}/remove-member`)
+        .set({ "x-access-token": signedUserTokenKey })
+        .send({userId: userIds[2]})
+        .then(res => {
+            expect(res.statusCode).to.equals(200)
+            done()
+        })
+        .catch((error) => done(error))
+    })
+})
+
+describe('GET /user/get-by-email/:email', () => {
+    it('OK, find user with email: tuan.nv@amavi.asia to set company manager', done => {
+        request(app).get('/user/get-by-email/' + "tuan.nv@amavi.asia")
+            .then(res => {
+                const body = res.body
+                expect(res.statusCode).to.equals(200)
+                expect(body).to.contain.property('user')
+                userId = body.user._id
+                // Save userId to global variable and use it to get detail, update, delete user
+                done()
+            })
+            .catch(error => done(error))
+    })
+})
+
+describe('POST /company/:companyId/change-user-role', () => {
+    it('OK, change user role', done => {
+        request(app).post(`/company/${companyIdEdited}/change-user-role`)
+        .set({ "x-access-token": signedUserTokenKey })
+        .send({userId, role: "manager"})
+        .then(res => {
+            expect(res.statusCode).to.equals(200)
+            done()
+        })
+        .catch((error) => done(error))
+    })
+})
+
+describe('POST /company/:companyId/upgrade-vip', () => {
+    it('OK, upgrade vip', done => {
+        request(app).post(`/company/${companyIdEdited}/upgrade-vip`)
+        .set({ "x-access-token": signedUserTokenKey })
+        .send({vip: 'vip3'})
+        .then(res => {
+            expect(res.statusCode).to.equals(200)
             done()
         })
         .catch((error) => done(error))

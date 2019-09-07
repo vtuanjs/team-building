@@ -26,7 +26,7 @@ const inCompany = (compareFrom, ...allowed) => {
         allowed.push("manager")
     }
 
-    return async (req) => {
+    return (req) => {
         const signedUser = req.user
         let companyId
         switch (compareFrom) {
@@ -57,7 +57,7 @@ const inProject = (compareFrom, ...allowed) => {
         allowed.push("manager")
     }
     
-    return async (req, _res) => {
+    return (req, _res) => {
         const signedUser = req.user
 
         let projectId
@@ -92,7 +92,7 @@ const inPlant = (compareFrom, ...allowed) => {
         allowed.push("manager")
     }
 
-    return async (req, _res) => {
+    return (req, _res) => {
         let plantId
         switch (compareFrom) {
             case "body":
@@ -125,7 +125,7 @@ const inJob = (compareFrom, ...allowed) => {
         allowed.push("manager")
     }
 
-    return async (req, _res) => {
+    return (req, _res) => {
         let jobId
         switch (compareFrom) {
             case "body":

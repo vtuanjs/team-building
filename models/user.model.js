@@ -9,7 +9,7 @@ const UserSchema = new Schema({
     phone: { type: String, default: "N/A"},
     address: { type: String, default: "N/A"},
     password: { type: String, required: true },
-    role: { type: String, default: "user" }, //admin, manager, secret, user
+    role: { type: String, default: "user" }, //admin, user
     isActive: { type: Number, default: 1},
     isBanned: { type: Number, default: 0 }, //1: banned
     company: {

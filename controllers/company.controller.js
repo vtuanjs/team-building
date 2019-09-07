@@ -114,31 +114,43 @@ const getCompanyByEmailDomain = async (req, res, next) => {
     }
 }
 
-const addMember = async (req, res, next) => {
+const addMembers = async (req, res, next) => {
     const { companyId } = req.params
-    const { userId } = req.body
+    const { userIds } = req.body
 
     const session = await mongoose.startSession()
     try {
         await session.withTransaction(async () => {
-            const [company, user] = await Promise.all([
-                Company.findOneAndUpdate(
-                    { _id: companyId, "members": { $ne: userId } },
-                    { $push: { members: userId } }
-                ).session(session),
+            let arrayUserIds = userIds
+            if (typeof userIds === 'string') {
+                arrayUserIds = userIds.split(',').map(item => {
+                    return item.trim()
+                })
+            }
 
-                User.findByIdAndUpdate(
-                    userId,
-                    { $set: { "company.id": companyId, "company.role": "employee" } }
+            const users = await User.find({ _id: { $in: arrayUserIds }, 'company.id': { $exists: false } })
+
+            if (users.length === 0) throw "Can not find any user"
+
+            const validUserIds = users.map(user => user._id)
+
+            const [_, company] = await Promise.all([
+                User.updateMany({ _id: { $in: validUserIds }, 'company.id': { $exists: false } },
+                    { $set: { "company.id": companyId, "company.role": "employee" } })
+                    .select('members')
+                    .session(session),
+
+                Company.findOneAndUpdate(
+                    { _id: companyId },
+                    { $addToSet: { members: { $each: validUserIds } } },
+                    { new: true }
                 ).session(session)
             ])
 
-            if (user.company.id) throw "One person - one company"
-            if (!company || !user)
-                throw "Member already in company or can not find user/company"
+            if (!company) throw "Can not find company"
 
-            return res.json({
-                message: `Add member with id: ${userId} successfully!`,
+            res.json({
+                message: `Add member to company ${company.name} successfully!`, company
             })
         })
     } catch (error) {
@@ -147,7 +159,7 @@ const addMember = async (req, res, next) => {
 }
 
 const removeMember = async (req, res, next) => {
-    const companyId = req.params
+    const { companyId } = req.params
     const { userId } = req.body
 
     const session = await mongoose.startSession()
@@ -156,7 +168,7 @@ const removeMember = async (req, res, next) => {
     try {
         const [company, _] = await Promise.all([
             Company.findByIdAndUpdate(companyId, { $pull: { members: userId } }).session(session),
-            User.findByIdAndUpdate(userId, { $unset: { company } }).session(session)
+            User.findByIdAndUpdate(userId, { $unset: { company: '' } }).session(session)
         ])
 
         if (!company)
@@ -173,8 +185,20 @@ const removeMember = async (req, res, next) => {
     }
 }
 
+const getUsersInCompany = async (req, res, next) => {
+    const { companyId } = req.params
+    try {
+        const company = await Company.findById(companyId).select('members')
+        if (!company) throw "Can not find company"
+
+        res.json({ users: company.members })
+    } catch (error) {
+        next(error)
+    }
+}
+
 const changeUserRole = async (req, res, next) => {
-    const companyId = req.params
+    const { companyId } = req.params
     const { userId, role } = req.body
     const signedUser = req.user
 
@@ -202,7 +226,7 @@ const changeUserRole = async (req, res, next) => {
 }
 
 const upgradeVip = async (req, res, next) => {
-    const companyId = req.params
+    const { companyId } = req.params
     const { vip } = req.body
 
     try {
@@ -273,10 +297,11 @@ module.exports = {
     postCompany,
     updateCompany,
     getCompany,
+    getUsersInCompany,
     deleteCompany,
     getCompanies,
     getCompanyByEmailDomain,
-    addMember,
+    addMembers,
     removeMember,
     changeUserRole,
     upgradeVip

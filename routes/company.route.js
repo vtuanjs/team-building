@@ -21,6 +21,10 @@ router.get('/:companyId',
     company.getCompany
 )
 
+router.get('/:companyId/get-users',
+    company.getUsersInCompany
+)
+
 router.put('/:companyId',
     authentication.required,
     checkPermit(inCompany("body", "manager"), inUser("admin")),
@@ -33,10 +37,10 @@ router.delete('/:companyId',
     company.deleteCompany
 )
 
-router.post('/:companyId/add-member',
+router.post('/:companyId/add-members',
     authentication.required,
     checkPermit(inUser("admin"), inCompany("self", "employee")),
-    company.addMember
+    company.addMembers
 )
 
 router.post('/:companyId/remove-member',

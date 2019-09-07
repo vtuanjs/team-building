@@ -29,6 +29,8 @@ router.get('/:userId', user.getUser)
 
 router.get('/get-by-email/:email', user.getByEmail)
 
+router.get('/get-by-email-domain/:emailDomain', user.getByEmailDomain)
+
 router.put('/:userId',
     authentication.required,
     checkPermit(isUserSelf(), inUser("admin")),

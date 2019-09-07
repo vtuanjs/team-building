@@ -7,7 +7,7 @@ const database = require('../database/database')
 const app = require('../app')
 
 let signedUserTokenKey = '' // Save token key after login
-let userIdEdited = '' // Use to update, delete this userId
+let listUsers = '' // Use to update, delete this userId
 
 describe('POST /user', () => {
     before(done => {
@@ -215,6 +215,7 @@ describe('GET /user', () => {
                 expect(res.statusCode).to.equals(200)
                 expect(body).to.contain.property('users')
                 expect(body.users.length).to.equals(9)
+                listUsers = body.users
                 done()
             })
             .catch(error => done(error))
@@ -228,8 +229,6 @@ describe('GET /user/get-by-email/:email', () => {
                 const body = res.body
                 expect(res.statusCode).to.equals(200)
                 expect(body).to.contain.property('user')
-                userIdEdited = body.user._id
-                // Save userId to global variable and use it to get detail, update, delete user
                 done()
             })
             .catch(error => done(error))
@@ -238,7 +237,7 @@ describe('GET /user/get-by-email/:email', () => {
 
 describe('GET /user/:userId', () => {
     it('OK, get detail user', done => {
-        request(app).get('/user/' + userIdEdited)
+        request(app).get('/user/' + listUsers[0]._id)
             .then(res => {
                 const body = res.body
                 expect(res.statusCode).to.equals(200)
@@ -299,7 +298,7 @@ describe('POST /auth/login', () => {
 
 describe('POST /user/admin/:userIds/block', () => {
     it('OK, block user by admin', done => {
-        request(app).post(`/user/admin/${userIdEdited}/block`)
+        request(app).post(`/user/admin/${listUsers[0]._id}/block`)
             .set({ "x-access-token": signedUserTokenKey })
             .then(res => {
                 const body = res.body
@@ -314,7 +313,7 @@ describe('POST /user/admin/:userIds/block', () => {
 
 describe('POST /user/admin/:userIds/unlock', () => {
     it('OK, unlock user by admin', done => {
-        request(app).post(`/user/admin/${userIdEdited}/unlock`)
+        request(app).post(`/user/admin/${listUsers[0]._id}/unlock`)
             .set({ "x-access-token": signedUserTokenKey })
             .then(res => {
                 const body = res.body
@@ -329,7 +328,7 @@ describe('POST /user/admin/:userIds/unlock', () => {
 
 describe('PUT /user/:userId', () => {
     it('OK, update user by admin', done => {
-        request(app).put(`/user/${userIdEdited}`)
+        request(app).put(`/user/${listUsers[0]._id}`)
             .set({ "x-access-token": signedUserTokenKey })
             .send({
                 name: 'Smith',
@@ -351,7 +350,7 @@ describe('PUT /user/:userId', () => {
     })
 
     it('OK, update user with change password', done => {
-        request(app).put(`/user/${userIdEdited}`)
+        request(app).put(`/user/${listUsers[0]._id}`)
             .set({ "x-access-token": signedUserTokenKey })
             .send({
                 name: 'Smith',
@@ -359,7 +358,7 @@ describe('PUT /user/:userId', () => {
                 phone: '0335578022',
                 address: 'Ho Chi Minh',
                 password: '12345678new',
-                oldPassword: '12345678c'
+                oldPassword: '12345678a'
             })
             .then(res => {
                 const body = res.body
@@ -375,7 +374,7 @@ describe('PUT /user/:userId', () => {
     })
 
     it('Fail, update user wrong old password', done => {
-        request(app).put(`/user/${userIdEdited}`)
+        request(app).put(`/user/${listUsers[0]._id}`)
             .set({ "x-access-token": signedUserTokenKey })
             .send({
                 name: 'Smith',
@@ -395,7 +394,7 @@ describe('PUT /user/:userId', () => {
 
 describe('DELETE /user/admin/:userIds/', () => {
     it('OK, delete user by admin', done => {
-        request(app).delete(`/user/admin/${userIdEdited}/`)
+        request(app).delete(`/user/admin/${listUsers[0]._id}/`)
             .set({ "x-access-token": signedUserTokenKey })
             .then(res => {
                 const body = res.body

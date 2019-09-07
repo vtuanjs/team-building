@@ -11,12 +11,12 @@ router.post('/',
 )
 router.get('/',
     authentication.required,
-    checkPermit(inUser("admin")),
     project.getProjects
 )
 
 router.get('/:projectId',
     authentication.required,
+    checkPermit(inUser('admin'), inCompany('self', 'employee')),
     project.getProject
 )
 router.put('/:projectId',
@@ -30,21 +30,51 @@ router.delete('/:projectId',
     project.deleteProject
 )
 
-router.post('/change-user-role',
+router.post('/:projectId/change-user-role',
     authentication.required,
-    checkPermit(inUser("admin")),
+    checkPermit(inUser("admin"), inCompany('self', 'manager')),
     project.changeUserRole
 )
 
-router.post('/add-member',
+router.post('/:projectId/move-to-trash',
     authentication.required,
-    checkPermit(inUser("admin"), inProject("self", "employee")),
-    project.addMember
+    checkPermit(inCompany('self', 'manager'), inProject('self', 'author')),
+    project.setProjectInTrash
 )
 
-router.post('/remove-member',
+router.post('/:projectId/unmove-to-trash',
     authentication.required,
-    checkPermit(inProject("self", "manager")),
+    checkPermit(inCompany('self', 'manager'), inProject('self', 'author')),
+    project.unsetProjectInTrash
+)
+
+router.post('/:projectId/hidden',
+    authentication.required,
+    checkPermit(inCompany('self', 'manager'), inProject('self', 'author')),
+    project.hiddenProject
+)
+
+router.post('/:projectId/unhidden',
+    authentication.required,
+    checkPermit(inCompany('self', 'manager'), inProject('self', 'author')),
+    project.unHiddenProject
+)
+
+router.post('/:projectId/delete',
+    authentication.required,
+    checkPermit(inCompany('self', 'manager')),
+    project.deleteProject
+)
+
+router.post('/:projectId/add-members',
+    authentication.required,
+    checkPermit(inCompany('self', 'manager'), inProject("self", "employee")),
+    project.addMembers
+)
+
+router.post('/:projectId/remove-member',
+    authentication.required,
+    checkPermit(inCompany("self", "manager")),
     project.removeMember
 )
 

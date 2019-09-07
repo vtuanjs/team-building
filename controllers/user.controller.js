@@ -21,8 +21,10 @@ const postUser = async (req, res, next) => {
         // If user email domain = company email domain, auto add this user to company
         const updatedCompany = await
             Company.findOneAndUpdate({ emailDomain }, { $push: { members: user._id } })
+
         if (updatedCompany) {
             user.company.id = updatedCompany._id
+            user.company.role = "user"
             await user.save()
         }
 
@@ -159,6 +161,19 @@ const getByEmail = async (req, res, next) => {
     }
 }
 
+const getByEmailDomain = async (req, res, next) => {
+    const { emailDomain } = req.params
+    try {
+        const users = await User.find({ email: new RegExp(emailDomain, "i") }).select("name email")
+
+        if (!users) throw "Nothing"
+
+        res.json({ users })
+    } catch (error) {
+        next(error)
+    }
+}
+
 const getUser = async (req, res, next) => {
     const userId = req.params.userId
 
@@ -221,5 +236,6 @@ module.exports = {
     deleteUser,
     getByEmail,
     getUser,
-    getUsers
+    getUsers,
+    getByEmailDomain
 }
