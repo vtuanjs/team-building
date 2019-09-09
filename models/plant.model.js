@@ -12,7 +12,7 @@ const PlantSchema = new Schema({
     members: [{ type: ObjectId, ref: "User" }],
     project: { type: ObjectId, ref: "Project" },
     jobs: [{ type: ObjectId, ref: "Job" }]
-}, {timestamps: true})
+}, {timestamps: true, autoCreate: true})
 
 const Plant = mongoose.model("Plant", PlantSchema)
 module.exports = Plant

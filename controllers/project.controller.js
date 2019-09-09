@@ -90,7 +90,7 @@ const deleteProject = async (req, res, next) => {
 
     const session = await mongoose.startSession()
     try {
-        session.withTransaction(async () => {
+        await session.withTransaction(async () => {
             const [project, _] = await Promise.all([
                 Project.findByIdAndDelete(projectId).session(session),
 
@@ -112,11 +112,11 @@ const deleteProject = async (req, res, next) => {
 
 const updateProject = async (req, res, next) => {
     const { projectId } = req.params
-    const { name, address } = req.body
+    const { title, description } = req.body
 
     const query = {
-        ...(name && { name }),
-        ...(address && { address }),
+        ...(title && { title }),
+        ...(description && { description }),
     }
     try {
         const project = await Project.findByIdAndUpdate(
@@ -125,7 +125,7 @@ const updateProject = async (req, res, next) => {
 
         if (!project) throw "Can not find project"
 
-        res.json({ message: `Update project ${project.name} successfully!`, project })
+        res.json({ message: `Update project ${project.title} successfully!`, project })
     } catch (error) {
         next(error)
     }
@@ -259,7 +259,7 @@ const changeUserRole = async (req, res, next) => {
             if (!user || !project) throw "Can not find user/project or user not a member in project"
 
             res.json({
-                message: `${user.name} is now ${role}!`, user: {_id: user._id, projects: user.projects}
+                message: `${user.title} is now ${role}!`, user: {_id: user._id, projects: user.projects}
             })
         })
     } catch (error) {

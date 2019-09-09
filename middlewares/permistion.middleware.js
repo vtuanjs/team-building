@@ -86,13 +86,13 @@ const inProject = (compareFrom, ...allowed) => {
 }
 
 const inPlant = (compareFrom, ...allowed) => {
-    const signedUser = req.user
-
+    
     if (allowed.indexOf("employee") > -1) {
         allowed.push("manager")
     }
-
+    
     return (req, _res) => {
+        const signedUser = req.user
         let plantId
         switch (compareFrom) {
             case "body":
@@ -119,13 +119,13 @@ const inPlant = (compareFrom, ...allowed) => {
 }
 
 const inJob = (compareFrom, ...allowed) => {
-    const signedUser = req.user
-
+    
     if (allowed.indexOf("employee") > -1) {
         allowed.push("manager")
     }
-
+    
     return (req, _res) => {
+        const signedUser = req.user
         let jobId
         switch (compareFrom) {
             case "body":
@@ -151,7 +151,7 @@ const inJob = (compareFrom, ...allowed) => {
     }
 }
 
-const checkPermit = (...checks) => {
+const checkPermit = (...checks) => {   
     return (req, res, next) => {
         for (let i = 0; i < checks.length; i++) {
             if (checks[i](req, res, next)) {

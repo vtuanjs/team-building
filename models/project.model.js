@@ -12,7 +12,7 @@ const ProjectSchema = new Schema({
     members: [{ type: ObjectId, ref: "User"}],
     company: {type: ObjectId, ref: "Company"},
     plants: [{ type: ObjectId, ref: "Plant" }]
-}, {timestamps: true})
+}, {timestamps: true, autoCreate: true})
 
 const Project = mongoose.model("Project", ProjectSchema)
 module.exports = Project

@@ -147,6 +147,21 @@ describe('GET /project', () => {
     })
 })
 
+describe('PUT /project/:projectId/', () => {
+    it('OK, move to trash project', done => {
+        request(app).put(`/project/${listProjects[0]._id}/`)
+            .set({ 'x-access-token': managerUser.tokenKey })
+            .send({ title: 'Project Edit', description: 'Description Edit'})
+            .then(res => {
+                const body = res.body
+                expect(res.statusCode).to.equals(200)
+                expect(body).to.contain.property('project')
+                done()
+            })
+            .catch((error) => done(error))
+    })
+})
+
 describe('POST /project/:projectId/move-to-trash', () => {
     it('OK, move to trash project', done => {
         request(app).post(`/project/${listProjects[0]._id}/move-to-trash`)

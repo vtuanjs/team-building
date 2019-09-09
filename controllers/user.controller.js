@@ -189,18 +189,18 @@ const getUser = async (req, res, next) => {
                     path: "projects.id",
                     select: "title"
                 },
-                {
-                    path: "plants.id",
-                    select: "title"
-                },
+                // {
+                //     path: "plants.id",
+                //     select: "title"
+                // },
                 // {
                 //     path: "jobs.id",
                 //     select: "title"
                 // },
-                {
-                    path: "teams.id",
-                    select: "name"
-                },
+                // {
+                //     path: "teams.id",
+                //     select: "name"
+                // },
                 // {
                 //     path: "comments",
                 //     select: "body comentOn"

@@ -7,7 +7,7 @@ const CommentSchema = new Schema({
     createdOn: { type: Date, default: Date.now },
     author: { type: ObjectId, ref: "User" },
     commentOn: { type: ObjectId, ref: 'Job' },
-}, {timestamps: true})
+}, {timestamps: true, autoCreate: true})
 
 const Comment = mongoose.model("Comment", CommentSchema)
 module.exports = Comment 

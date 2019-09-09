@@ -21,7 +21,7 @@ router.get('/:projectId',
 )
 router.put('/:projectId',
     authentication.required,
-    checkPermit(inProject("body", "manager")),
+    checkPermit(inProject("body", "manager"), inCompany('self', 'manager')),
     project.updateProject
 )
 router.delete('/:projectId',

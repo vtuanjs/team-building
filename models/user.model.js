@@ -38,7 +38,7 @@ const UserSchema = new Schema({
         _id: false
     },
     comments: [{ type: ObjectId, ref: "Comment" }]
-}, {timestamps: true})
+}, {timestamps: true, autoCreate: true})
 
 const User = mongoose.model('User', UserSchema)
 module.exports = User

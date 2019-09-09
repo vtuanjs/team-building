@@ -17,7 +17,7 @@ const CompanySchema = new Schema({
         jobs: { type: Number, default: 20 },
     },
     lastUpgradeVip: { type: Date, default: Date.now }
-}, { timestamps: true })
+}, { timestamps: true, autoCreate: true })
 
 const Company = mongoose.model("Company", CompanySchema)
 module.exports = Company

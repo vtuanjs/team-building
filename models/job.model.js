@@ -12,7 +12,7 @@ const JobSchema = new Schema({
     members: [{ type: ObjectId, ref: "User" }],
     plant: { type: ObjectId, ref: "Plant" },
     comment: [{ type: ObjectId, ref: "Comment" }]
-}, {timestamps: true})
+}, {timestamps: true, autoCreate: true})
 
 const Job = mongoose.model("Job", JobSchema)
 module.exports = Job
