@@ -32,6 +32,11 @@ const UserSchema = new Schema({
         role: {type: String, default: "employee"},
         _id: false
     }],
+    subJobs: [{
+        id: {type: ObjectId, ref: "SubJob" },
+        role: {type: String, default: "employee"},
+        _id: false
+    }],
     team: {
         id: {type: ObjectId, ref: "Team" },
         role: {type: String, default: "employee"},

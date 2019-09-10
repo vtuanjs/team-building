@@ -61,7 +61,7 @@ router.post('/:plantId/unhidden',
     plant.unHiddenPlant
 )
 
-router.post('/:plantId/delete',
+router.delete('/:plantId/delete',
     authentication.required,
     checkPermit(inCompany('self', 'manager')),
     plant.deletePlant

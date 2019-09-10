@@ -151,6 +151,39 @@ const inJob = (compareFrom, ...allowed) => {
     }
 }
 
+const inSubJob = (compareFrom, ...allowed) => {
+    
+    if (allowed.indexOf("employee") > -1) {
+        allowed.push("manager")
+    }
+    
+    return (req, _res) => {
+        const signedUser = req.user
+        let subJobId
+        switch (compareFrom) {
+            case "body":
+                subJobId = req.body.subJobId
+                break;
+            case "params":
+                subJobId = req.params.subJobId
+                break;
+            case "query":
+                subJobId = req.query.subJobId
+                break;
+            default:
+                break;
+        }
+
+        if (signedUser && signedUser.jobs
+            && signedUser.jobs.some(subJob => {
+                return subJob.id.equals(subJobId)
+                    && isAllowed(subJob.role, allowed)
+            })) return true
+
+        return false
+    }
+}
+
 const checkPermit = (...checks) => {   
     return (req, res, next) => {
         for (let i = 0; i < checks.length; i++) {
@@ -171,5 +204,6 @@ module.exports = {
     inProject,
     inPlant,
     inJob,
+    inSubJob,
     checkPermit
 }

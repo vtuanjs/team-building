@@ -2,16 +2,16 @@ const mongoose = require('mongoose')
 const Schema = mongoose.Schema
 const ObjectId = mongoose.Schema.Types.ObjectId
 
-const ProjectSchema = new Schema({
+const SubJobSchema = new Schema({
     title: { type: String, required: true },
-    description: { type: String, default: " "},
+    description: {type: String, default: ""},
     isHidden: {type: Number, default: 0},
     isClosed: {type: Number, default: 0},
     isInTrash: {type: Number, default: 0},
-    members: [{ type: ObjectId, ref: "User"}],
-    company: {type: ObjectId, ref: "Company"},
-    plants: [{ type: ObjectId, ref: "Plant" }]
+    members: [{ type: ObjectId, ref: "User" }],
+    job: { type: ObjectId, ref: "Job" },
+    comment: [{ type: ObjectId, ref: "Comment" }]
 }, {timestamps: true, autoCreate: true})
 
-const Project = mongoose.model("Project", ProjectSchema)
-module.exports = Project
+const SubJob = mongoose.model("SubJob", SubJobSchema)
+module.exports = SubJob

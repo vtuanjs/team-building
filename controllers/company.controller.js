@@ -163,24 +163,20 @@ const removeMember = async (req, res, next) => {
     const { userId } = req.body
 
     const session = await mongoose.startSession()
-    session.startTransaction()
 
     try {
-        const [company, _] = await Promise.all([
-            Company.findByIdAndUpdate(companyId, { $pull: { members: userId } }).session(session),
-            User.findByIdAndUpdate(userId, { $unset: { company: '' } }).session(session)
-        ])
-
-        if (!company)
-            throw "Can not find company"
-
-        await session.commitTransaction();
-        session.endSession();
-
-        return res.json({ message: `Remove member successfully!` })
+        await session.withTransaction(async () => {
+            const [company, _] = await Promise.all([
+                Company.findByIdAndUpdate(companyId, { $pull: { members: userId } }).session(session),
+                User.findByIdAndUpdate(userId, { $unset: { company: '' } }).session(session)
+            ])
+    
+            if (!company)
+                throw "Can not find company"
+    
+            res.json({ message: `Remove member successfully!` })
+        })
     } catch (error) {
-        await session.abortTransaction()
-        session.endSession()
         next(error)
     }
 }

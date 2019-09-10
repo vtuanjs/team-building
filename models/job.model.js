@@ -8,7 +8,6 @@ const JobSchema = new Schema({
     isHidden: {type: Number, default: 0},
     isClosed: {type: Number, default: 0},
     isInTrash: {type: Number, default: 0},
-    author: { type: ObjectId, ref: "User"},
     members: [{ type: ObjectId, ref: "User" }],
     plant: { type: ObjectId, ref: "Plant" },
     comment: [{ type: ObjectId, ref: "Comment" }]

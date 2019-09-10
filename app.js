@@ -18,6 +18,7 @@ app.use('/company/', require('./routes/company.route'))
 app.use('/project/', require('./routes/project.route'))
 app.use('/plant/', require('./routes/plant.route'))
 app.use('/job/', require('./routes/job.route'))
+app.use('/subJob/', require('./routes/subJob.route'))
 app.use('/team/', require('./routes/team.route'))
 app.use('/comment/', require('./routes/comment.route'))
 

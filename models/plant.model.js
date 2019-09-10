@@ -8,7 +8,6 @@ const PlantSchema = new Schema({
     isHidden: {type: Number, default: 0},
     isClosed: {type: Number, default: 0},
     isInTrash: {type: Number, default: 0},
-    author: { type: ObjectId, ref: "User"},
     members: [{ type: ObjectId, ref: "User" }],
     project: { type: ObjectId, ref: "Project" },
     jobs: [{ type: ObjectId, ref: "Job" }]

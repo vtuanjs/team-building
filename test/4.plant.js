@@ -182,7 +182,7 @@ describe('GET /plant?projectId=', () => {
 })
 
 describe('PUT /plant/:plantId/', () => {
-    it('OK, move to trash plant', done => {
+    it('OK, edit plant', done => {
         request(app).put(`/plant/${listPlants[0]._id}/`)
             .set({ 'x-access-token': managerUser.tokenKey })
             .send({ title: 'Plant Edit', description: 'Description Edit'})
@@ -211,7 +211,7 @@ describe('POST /plant/:plantId/move-to-trash', () => {
 })
 
 describe('POST /plant/:plantId/unmove-to-trash', () => {
-    it('OK, move to trash plant', done => {
+    it('OK, unmove to trash plant', done => {
         request(app).post(`/plant/${listPlants[0]._id}/unmove-to-trash`)
             .set({ 'x-access-token': managerUser.tokenKey })
             .then(res => {
@@ -225,7 +225,7 @@ describe('POST /plant/:plantId/unmove-to-trash', () => {
 })
 
 describe('POST /plant/:plantId/hidden', () => {
-    it('OK, move to trash plant', done => {
+    it('OK, hidden plant', done => {
         request(app).post(`/plant/${listPlants[0]._id}/hidden`)
             .set({ 'x-access-token': managerUser.tokenKey })
             .then(res => {
@@ -239,7 +239,7 @@ describe('POST /plant/:plantId/hidden', () => {
 })
 
 describe('POST /plant/:plantId/unhidden', () => {
-    it('OK, move to trash plant', done => {
+    it('OK, unhidden plant', done => {
         request(app).post(`/plant/${listPlants[0]._id}/unhidden`)
             .set({ 'x-access-token': managerUser.tokenKey })
             .then(res => {
@@ -252,23 +252,9 @@ describe('POST /plant/:plantId/unhidden', () => {
     })
 })
 
-describe('POST /plant/:plantId/unhidden', () => {
-    it('OK, move to trash plant', done => {
-        request(app).post(`/plant/${listPlants[0]._id}/unhidden`)
-            .set({ 'x-access-token': managerUser.tokenKey })
-            .then(res => {
-                const body = res.body
-                expect(res.statusCode).to.equals(200)
-                expect(body).to.contain.property('plant')
-                done()
-            })
-            .catch((error) => done(error))
-    })
-})
-
-describe('POST /plant/:plantId/delete', () => {
-    it('OK, move to trash plant', done => {
-        request(app).post(`/plant/${listPlants[0]._id}/delete`)
+describe('DELETE /plant/:plantId/delete', () => {
+    it('OK, delete plant', done => {
+        request(app).delete(`/plant/${listPlants[0]._id}/delete`)
             .set({ 'x-access-token': managerUser.tokenKey })
             .then(res => {
                 const body = res.body
@@ -309,7 +295,7 @@ describe('POST /plant/:plantId/add-members', () => {
 })
 
 describe('POST /plant/:plantId/remove-member', () => {
-    it('OK, add members to plant', done => {
+    it('OK, remove member to plant', done => {
         request(app).post(`/plant/${listPlants[1]._id}/remove-member`)
             .set({ 'x-access-token': managerUser.tokenKey })
             .send({userId: userIds[1]})
@@ -322,7 +308,7 @@ describe('POST /plant/:plantId/remove-member', () => {
 })
 
 describe('POST /plant/:plantId/change-user-role', () => {
-    it('OK, add members to plant', done => {
+    it('OK, change user role', done => {
         request(app).post(`/plant/${listPlants[1]._id}/change-user-role`)
             .set({ 'x-access-token': managerUser.tokenKey })
             .send({userId: userIds[1], role: 'manager'})
