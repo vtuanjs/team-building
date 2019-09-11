@@ -9,7 +9,7 @@ const JobSchema = new Schema({
     isClosed: {type: Number, default: 0},
     isInTrash: {type: Number, default: 0},
     members: [{ type: ObjectId, ref: "User" }],
-    plant: { type: ObjectId, ref: "Plant" },
+    groupJob: { type: ObjectId, ref: "GroupJob" },
     comment: [{ type: ObjectId, ref: "Comment" }]
 }, {timestamps: true, autoCreate: true})
 

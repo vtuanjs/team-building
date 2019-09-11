@@ -85,7 +85,7 @@ const inProject = (compareFrom, ...allowed) => {
     }
 }
 
-const inPlant = (compareFrom, ...allowed) => {
+const inGroupJob = (compareFrom, ...allowed) => {
     
     if (allowed.indexOf("employee") > -1) {
         allowed.push("manager")
@@ -93,25 +93,25 @@ const inPlant = (compareFrom, ...allowed) => {
     
     return (req, _res) => {
         const signedUser = req.user
-        let plantId
+        let groupJobId
         switch (compareFrom) {
             case "body":
-                plantId = req.body.plantId
+                groupJobId = req.body.groupJobId
                 break;
             case "params":
-                plantId = req.params.plantId
+                groupJobId = req.params.groupJobId
                 break;
             case "query":
-                plantId = req.query.plantId
+                groupJobId = req.query.groupJobId
                 break;
             default:
                 break;
         }
 
-        if (signedUser && signedUser.plants
-            && signedUser.plants.some(plant => {
-                return plant.id.equals(plantId)
-                    && isAllowed(plant.role, allowed)
+        if (signedUser && signedUser.groupJobs
+            && signedUser.groupJobs.some(groupJob => {
+                return groupJob.id.equals(groupJobId)
+                    && isAllowed(groupJob.role, allowed)
             })) return true
 
         return false
@@ -202,7 +202,7 @@ module.exports = {
     inUser,
     inCompany,
     inProject,
-    inPlant,
+    inGroupJob,
     inJob,
     inSubJob,
     checkPermit

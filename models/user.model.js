@@ -22,8 +22,8 @@ const UserSchema = new Schema({
         role: {type: String, default: "employee"},
         _id: false
     }],
-    plants: [{
-        id: {type: ObjectId, ref: "Plant" },
+    groupJobs: [{
+        id: {type: ObjectId, ref: "GroupJob" },
         role: {type: String, default: "employee"},
         _id: false
     }],

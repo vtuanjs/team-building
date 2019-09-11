@@ -300,3 +300,4 @@ describe('POST /project/:projectId/change-user-role', () => {
     })
 })
 
+module.exports = { managerUser, employeeUser, listProjects}

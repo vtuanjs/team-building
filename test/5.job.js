@@ -8,7 +8,7 @@ let managerUser = '' // Save user login tokenkey
 let employeeUser = ''
 let notPermitUser = ''
 let project = ''
-let plant = ''
+let groupJob = ''
 let listJobs = '' // Use to update, delete this company with Id
 let userIds // Array user will add to job
 
@@ -47,7 +47,7 @@ describe('POST /auth/login', () => {
 })
 
 describe('POST /auth/login', () => {
-    it('Ok, login employee plant account', done => {
+    it('Ok, login employee groupJob account', done => {
         request(app).post(`/auth/login`)
             .send({ email: 'kien.nguyen@amavi.asia', password: '12345678c' })
             .then(res => {
@@ -78,15 +78,15 @@ describe('GET /project', () => {
     })
 })
 
-describe('GET /plant?projectId=', () => {
-    it('OK, Query list of plants', done => {
-        request(app).get(`/plant?projectId=${project._id}`)
+describe('GET /groupJob?projectId=', () => {
+    it('OK, Query list of groupJobs', done => {
+        request(app).get(`/groupJob?projectId=${project._id}`)
             .set({ 'x-access-token': employeeUser.tokenKey })
             .then(res => {
                 const body = res.body
                 expect(res.statusCode).to.equals(200)
-                expect(body).to.contain.property('plants')
-                plant = body.plants[0]
+                expect(body).to.contain.property('groupJobs')
+                groupJob = body.groupJobs[0]
                 done()
             })
             .catch((error) => done(error))
@@ -97,7 +97,7 @@ describe('POST /job', () => {
     it('OK, create Job 1', done => {
         request(app).post('/job')
             .set({ 'x-access-token': managerUser.tokenKey })
-            .send({ title: 'Job 1', description: 'Job 1 Description', plantId: plant._id })
+            .send({ title: 'Job 1', description: 'Job 1 Description', groupJobId: groupJob._id })
             .then(res => {
                 const body = res.body
                 expect(res.statusCode).to.equals(200)
@@ -112,7 +112,7 @@ describe('POST /job', () => {
     it('OK, create Job 2', done => {
         request(app).post('/job')
             .set({ 'x-access-token': managerUser.tokenKey })
-            .send({ title: 'Job 2', description: 'Job 2 Description', plantId: plant._id })
+            .send({ title: 'Job 2', description: 'Job 2 Description', groupJobId: groupJob._id })
             .then(res => {
                 const body = res.body
                 expect(res.statusCode).to.equals(200)
@@ -127,7 +127,7 @@ describe('POST /job', () => {
     it('OK, create Job 3', done => {
         request(app).post('/job')
             .set({ 'x-access-token': managerUser.tokenKey })
-            .send({ title: 'Job 3', description: 'Job 3 Description', plantId: plant._id })
+            .send({ title: 'Job 3', description: 'Job 3 Description', groupJobId: groupJob._id })
             .then(res => {
                 const body = res.body
                 expect(res.statusCode).to.equals(200)
@@ -142,7 +142,7 @@ describe('POST /job', () => {
     it('OK, create Job 4', done => {
         request(app).post('/job')
             .set({ 'x-access-token': managerUser.tokenKey })
-            .send({ title: 'Job 4', description: 'Job 4 Description', plantId: plant._id })
+            .send({ title: 'Job 4', description: 'Job 4 Description', groupJobId: groupJob._id })
             .then(res => {
                 const body = res.body
                 expect(res.statusCode).to.equals(200)
@@ -157,7 +157,7 @@ describe('POST /job', () => {
     it('OK, create Job 5', done => {
         request(app).post('/job')
             .set({ 'x-access-token': managerUser.tokenKey })
-            .send({ title: 'Job 5', description: 'Job 5 Description', plantId: plant._id })
+            .send({ title: 'Job 5', description: 'Job 5 Description', groupJobId: groupJob._id })
             .then(res => {
                 const body = res.body
                 expect(res.statusCode).to.equals(200)
@@ -172,7 +172,7 @@ describe('POST /job', () => {
     it('Fail, not permistion', done => {
         request(app).post('/job')
             .set({ 'x-access-token': notPermitUser.tokenKey })
-            .send({ title: 'Job Fail', description: 'Job Fail Description', plantId: plant._id })
+            .send({ title: 'Job Fail', description: 'Job Fail Description', groupJobId: groupJob._id })
             .then(res => {
                 expect(res.statusCode).to.equals(403)
                 done()
@@ -181,9 +181,9 @@ describe('POST /job', () => {
     })
 })
 
-describe('GET /job?plantId=', () => {
+describe('GET /job?groupJobId=', () => {
     it('OK, Query list of jobs', done => {
-        request(app).get(`/job?plantId=${plant._id}`)
+        request(app).get(`/job?groupJobId=${groupJob._id}`)
             .set({ 'x-access-token': employeeUser.tokenKey })
             .then(res => {
                 const body = res.body

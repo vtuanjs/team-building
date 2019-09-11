@@ -236,7 +236,7 @@ const upgradeVip = async (req, res, next) => {
                     teams: 10,
                     space: 100,
                     projects: 9999,
-                    plants: 9999,
+                    groupJobs: 9999,
                     jobs: 9999,
                 }
                 break
@@ -246,7 +246,7 @@ const upgradeVip = async (req, res, next) => {
                     teams: 30,
                     space: 1000,
                     projects: 9999,
-                    plants: 9999,
+                    groupJobs: 9999,
                     jobs: 9999,
                 }
                 break
@@ -256,7 +256,7 @@ const upgradeVip = async (req, res, next) => {
                     teams: 9999,
                     space: 5000,
                     projects: 9999,
-                    plants: 9999,
+                    groupJobs: 9999,
                     jobs: 9999,
                 }
                 break
@@ -266,7 +266,7 @@ const upgradeVip = async (req, res, next) => {
                     teams: 2,
                     space: 5,
                     projects: 1,
-                    plants: 5,
+                    groupJobs: 5,
                     jobs: 20,
                 }
                 break

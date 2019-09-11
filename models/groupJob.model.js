@@ -2,7 +2,7 @@ const mongoose = require('mongoose')
 const Schema = mongoose.Schema
 const ObjectId = mongoose.Schema.Types.ObjectId
 
-const PlantSchema = new Schema({
+const GroupJobSchema = new Schema({
     title: { type: String, required: true },
     description: {type: String, default: ""},
     isHidden: {type: Number, default: 0},
@@ -13,5 +13,5 @@ const PlantSchema = new Schema({
     jobs: [{ type: ObjectId, ref: "Job" }]
 }, {timestamps: true, autoCreate: true})
 
-const Plant = mongoose.model("Plant", PlantSchema)
-module.exports = Plant
+const GroupJob = mongoose.model("GroupJob", GroupJobSchema)
+module.exports = GroupJob

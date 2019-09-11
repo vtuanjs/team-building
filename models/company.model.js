@@ -13,7 +13,7 @@ const CompanySchema = new Schema({
         teams: { type: Number, default: 2 },
         space: { type: Number, default: 5 },
         projects: { type: Number, default: 1 },
-        plants: { type: Number, default: 5 },
+        groupJobs: { type: Number, default: 5 },
         jobs: { type: Number, default: 20 },
     },
     lastUpgradeVip: { type: Date, default: Date.now }

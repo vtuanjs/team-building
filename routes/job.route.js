@@ -2,17 +2,17 @@ const express = require('express')
 const router = express.Router()
 const job = require('../controllers/job.controller')
 const authentication = require('../middlewares/auth.middleware')
-const { checkPermit, inPlant, inJob, inUser, inCompany } = require('../middlewares/permistion.middleware')
+const { checkPermit, inGroupJob, inJob, inUser, inCompany } = require('../middlewares/permistion.middleware')
 
 router.post('/',
     authentication.required,
-    checkPermit(inCompany("self", "manager"), inPlant('body', 'employee')),
+    checkPermit(inCompany("self", "manager"), inGroupJob('body', 'employee')),
     job.postJob
 )
 
 router.get('/',
     authentication.required,
-    checkPermit(inCompany("self", "manager"), inPlant('query', 'employee')),
+    checkPermit(inCompany("self", "manager"), inGroupJob('query', 'employee')),
     job.getJobs
 )
 

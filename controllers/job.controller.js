@@ -1,10 +1,10 @@
 const Job = require('../models/job.model')
-const Plant = require('../models/plant.model')
+const GroupJob = require('../models/groupJob.model')
 const User = require('../models/user.model')
 const mongoose = require('mongoose')
 
 const postJob = async (req, res, next) => {
-    const { title, description, plantId } = req.body
+    const { title, description, groupJobId } = req.body
     const signedUser = req.user
     const session = await mongoose.startSession()
     try {
@@ -13,22 +13,22 @@ const postJob = async (req, res, next) => {
                 [{
                     title,
                     description,
-                    plant: plantId,
+                    groupJob: groupJobId,
                     members: [signedUser._id]
                 }], { session}
             )
     
             signedUser.jobs.push({ id: job._id, role: "author" })
     
-            const [plant, user] = await Promise.all([
-                Plant.findByIdAndUpdate(
-                    plantId,
+            const [groupJob, user] = await Promise.all([
+                GroupJob.findByIdAndUpdate(
+                    groupJobId,
                     { $addToSet: { jobs: job._id } }
                 ).session(session),
                 signedUser.save()
             ])
 
-            if (!plant) throw 'Can not find plant'
+            if (!groupJob) throw 'Can not find groupJob'
     
             res.json({ message: `Create job successfully!`, job })
         })
@@ -136,11 +136,11 @@ const updateJob = async (req, res, next) => {
 }
 
 const getJobs = async (req, res, next) => {
-    const { plantId } = req.query
+    const { groupJobId } = req.query
 
     try {
         const jobs = await Job.find(
-            { plant: plantId },
+            { groupJob: groupJobId },
             "title createdAt"
         )
 

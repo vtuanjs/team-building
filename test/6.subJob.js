@@ -78,24 +78,24 @@ describe('GET /project', () => {
     })
 })
 
-describe('GET /plant?projectId=', () => {
-    it('OK, Query list of plants', done => {
-        request(app).get(`/plant?projectId=${project._id}`)
+describe('GET /groupJob?projectId=', () => {
+    it('OK, Query list of groupJobs', done => {
+        request(app).get(`/groupJob?projectId=${project._id}`)
             .set({ 'x-access-token': employeeUser.tokenKey })
             .then(res => {
                 const body = res.body
                 expect(res.statusCode).to.equals(200)
-                expect(body).to.contain.property('plants')
-                plant = body.plants[0]
+                expect(body).to.contain.property('groupJobs')
+                groupJob = body.groupJobs[0]
                 done()
             })
             .catch((error) => done(error))
     })
 })
 
-describe('GET /job?plantId=', () => {
+describe('GET /job?groupJobId=', () => {
     it('OK, Query list of jobs', done => {
-        request(app).get(`/job?plantId=${plant._id}`)
+        request(app).get(`/job?groupJobId=${groupJob._id}`)
             .set({ 'x-access-token': employeeUser.tokenKey })
             .then(res => {
                 const body = res.body

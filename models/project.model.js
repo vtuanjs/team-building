@@ -10,7 +10,7 @@ const ProjectSchema = new Schema({
     isInTrash: {type: Number, default: 0},
     members: [{ type: ObjectId, ref: "User"}],
     company: {type: ObjectId, ref: "Company"},
-    plants: [{ type: ObjectId, ref: "Plant" }]
+    groupJobs: [{ type: ObjectId, ref: "GroupJob" }]
 }, {timestamps: true, autoCreate: true})
 
 const Project = mongoose.model("Project", ProjectSchema)
