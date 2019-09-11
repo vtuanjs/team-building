@@ -3,121 +3,133 @@ const Comment = require('../models/comment.model')
 const User = require('../models/user.model')
 const mongoose = require('mongoose')
 
-const postJob = async (req, res, next) => {
-    const { title, description, groupJobId } = req.body
+const postComment = async (req, res, next) => {
+    const { body, jobId } = req.body
     const signedUser = req.user
     const session = await mongoose.startSession()
     try {
         await session.withTransaction(async () => {
-            const [job] = await Job.create(
+            const [comment] = await Comment.create(
                 [{
-                    title,
-                    description,
-                    groupJob: groupJobId,
-                    members: [signedUser._id]
-                }], { session}
+                    body,
+                    commentOn: jobId,
+                    author: signedUser._id
+                }], { session }
             )
-    
-            signedUser.jobs.push({ id: job._id, role: "author" })
-    
-            const [groupJob, user] = await Promise.all([
-                GroupJob.findByIdAndUpdate(
-                    groupJobId,
-                    { $addToSet: { jobs: job._id } }
+
+            signedUser.comments.push(comment._id)
+
+            const [job, user] = await Promise.all([
+                Job.findByIdAndUpdate(
+                    jobId,
+                    { $addToSet: { comments: comment._id } }
                 ).session(session),
                 signedUser.save()
             ])
 
-            if (!groupJob) throw 'Can not find groupJob'
-    
-            res.json({ message: `Create job successfully!`, job })
+            if (!job) throw 'Can not find job'
+
+            res.json({ message: `Create comment successfully!`, comment })
         })
     } catch (error) {
         next(error)
     }
 }
 
-const deleteJob = async (req, res, next) => {
-    const { jobId } = req.params
+const deleteComment = async (req, res, next) => {
+    const { commentId } = req.params
+    const signedUser = req.user
 
     const session = await mongoose.startSession()
     try {
         await session.withTransaction(async () => {
-            const [job, _] = await Promise.all([
-                Job.findByIdAndDelete(jobId).session(session),
+            const [comment, job, user] = await Promise.all([
+                Comment.deleteOne({ _id: commentId, author: signedUser._id }),
 
-                User.updateMany(
-                    { "jobs.id": jobId },
-                    { $pull: { jobs: { id: jobId } } }
+                Job.updateOne(
+                    { "comments.id": commentId },
+                    { $pull: { comments: { id: commentId } } }
+                ).session(session),
+
+                User.updateOne(
+                    { "comments.id": commentId },
+                    { $pull: { comments: { id: commentId } } }
                 ).session(session)
             ])
 
-            if (!job)
-                throw "Can not find job or user"
+            if (!comment)
+                throw "Can not find comment or user"
 
-            res.json({ message: "Delete job successfully!" })
+            res.json({ message: "Delete comment successfully!" })
         })
     } catch (error) {
         next(error)
     }
 }
 
-const updateJob = async (req, res, next) => {
-    const { jobId } = req.params
-    const { title, description } = req.body
+const updateComment = async (req, res, next) => {
+    const { commentId } = req.params
+    const { body } = req.body
+    const signedUser = req.user
 
     const query = {
-        ...(title && { title }),
-        ...(description && { description }),
+        ...(body && { body }),
     }
+
+    const session = await mongoose.startSession()
     try {
-        const job = await Job.findByIdAndUpdate(
-            jobId, query, { new: true }
-        )
+        await session.withTransaction(async () => {
+            const comment = await Comment.findByIdAndUpdate(
+                commentId, query, { new: true }
+            ).session(session)
 
-        if (!job) throw "Can not find job"
+            if (!comment) throw "Can not find comment"
+            if (!comment.author.equals(signedUser._id)) {
+                throw 'Only author can do this action'
+            }
 
-        res.json({ message: `Update job ${job.title} successfully!`, job })
+            res.json({ message: `Update comment ${comment.body} successfully!`, comment })
+        })
     } catch (error) {
         next(error)
     }
 }
 
-const getJobs = async (req, res, next) => {
-    const { groupJobId } = req.query
+const getComments = async (req, res, next) => {
+    const { jobId } = req.query
 
     try {
-        const jobs = await Job.find(
-            { groupJob: groupJobId },
-            "title createdAt"
+        const comments = await Comment.find(
+            { commentOn: jobId },
+            "body commentOn createdAt"
         )
 
-        if (!jobs) throw "Can not show job"
+        if (!comments) throw "Can not show comment"
 
-        res.json({ jobs })
+        res.json({ comments })
     } catch (error) {
         next(error)
     }
 }
 
-const getJob = async (req, res, next) => {
-    const { jobId } = req.params
+const getComment = async (req, res, next) => {
+    const { commentId } = req.params
 
     try {
-        const job = await Job.findById(jobId)
+        const comment = await Comment.findById(commentId)
 
-        if (!job) throw "Wrong job id"
+        if (!comment) throw "Wrong comment id"
 
-        res.json({ job })
+        res.json({ comment })
     } catch (error) {
         next(error)
     }
 }
 
 module.exports = {
-    postJob,
-    deleteJob,
-    updateJob,
-    getJobs,
-    getJob
+    postComment,
+    deleteComment,
+    updateComment,
+    getComments,
+    getComment
 }
