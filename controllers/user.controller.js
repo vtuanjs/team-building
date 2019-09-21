@@ -151,7 +151,9 @@ const deleteUser = async (req, res, next) => {
 const getByEmail = async (req, res, next) => {
     const { email } = req.params
     try {
-        const foundUser = await User.findOne({ email: email.trim().toLowerCase() }).select("name email")
+        const foundUser = await User
+            .findOne({ email: email.trim().toLowerCase() })
+            .select("name email")
 
         if (!foundUser) throw "Nothing"
 
@@ -164,7 +166,9 @@ const getByEmail = async (req, res, next) => {
 const getByEmailDomain = async (req, res, next) => {
     const { emailDomain } = req.params
     try {
-        const users = await User.find({ email: new RegExp(emailDomain, "i") }).select("name email")
+        const users = await User
+        .find({ email: new RegExp(emailDomain, "i") })
+        .select("name email")
 
         if (!users) throw "Nothing"
 

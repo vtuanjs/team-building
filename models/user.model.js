@@ -5,6 +5,7 @@ const ObjectId = mongoose.Schema.Types.ObjectId
 const UserSchema = new Schema({
     email: { type: String, lowercase: true, match: /^([\w-\.]+@([\w-]+\.)+[\w-]{2,4})?$/, unique: true, required: true },
     name: { type: String, default: ""},
+    avata: String,
     gender: { type: String, enum: ["male", "female", "N/A"], default: "N/A"},
     phone: { type: String, default: "N/A"},
     address: { type: String, default: "N/A"},

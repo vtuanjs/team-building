@@ -22,8 +22,15 @@ app.use('/subJob/', require('./routes/subJob.route'))
 app.use('/team/', require('./routes/team.route'))
 app.use('/comment/', require('./routes/comment.route'))
 
+
+app.use(function (_req, res, next) {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+    next();
+});
+
 app.use((error, _req, res, _next) => {
     res.status(400).json({ message: "Something went wrong! " + error })
-});
+})
 
 module.exports = app
