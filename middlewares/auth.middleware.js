@@ -1,6 +1,6 @@
 const User = require('../models/user.model')
 const jwt = require('jsonwebtoken')
-const secretString = process.env.SECRET_STRING
+const secretString = process.env.SECRET_STRING || '123456'
 
 module.exports.required = async (req, res, next) => {
     let tokenKey = req.headers['x-access-token']

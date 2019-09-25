@@ -209,10 +209,10 @@ const getUser = async (req, res, next) => {
                 //     path: "teams.id",
                 //     select: "name"
                 // },
-                // {
-                //     path: "comments",
-                //     select: "body comentOn"
-                // }
+                {
+                    path: "comments",
+                    select: "body comentOn"
+                }
             ])
 
         if (!foundUser) throw "User is not exist"

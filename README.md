@@ -1,6 +1,6 @@
 # Team Building v1
 
-Đây là phần mềm dành cho doanh nghiệp, giúp quản lí tiến độ công việc.
+Đây là backend phần mềm dành cho doanh nghiệp, giúp quản lí tiến độ công việc.
 
 Phần mềm gồm 5 cấp độ:
 
@@ -13,3 +13,10 @@ Phần mềm gồm 5 cấp độ:
 Phần mềm sẽ phân quyền cụ thể đến 5 cấp độ, ai không phải thành viên của nhóm sẽ không được xem.
 
 Đây là phiên bản thử nghiệm
+
+# HOW TO USE
+
+1. $ git clone https://github.com/vantuan1303/team-building.git
+2. $ cd team-building
+3. yarn
+4. yarn run test
