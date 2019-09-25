@@ -1,8 +1,7 @@
-const PORT = process.env.PORT || 3000
-const HOST = process.env.HOST || 'localhost'
+const PORT = process.env.PORT
+const HOST = process.env.HOST
 const EMAIL_USER = process.env.EMAIL_USER
 const EMAIL_PASS = process.env.EMAIL_PASS
-const allowAccessIP = '*'
 const nodemailer = require('nodemailer')
 const sendEmail = async (receiverEmail, secretKey) => {
     try {
@@ -26,4 +25,4 @@ const sendEmail = async (receiverEmail, secretKey) => {
     }
 }
 
-module.exports = { PORT, HOST, sendEmail, allowAccessIP }
+module.exports = { sendEmail }

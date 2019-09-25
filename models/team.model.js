@@ -4,7 +4,6 @@ const ObjectId = mongoose.Schema.Types.ObjectId
 
 const TeamSchema = new Schema({
     name: { type: String, required: true },
-    createdOn: { type: Date, default: Date.now},
     members: [{ type: ObjectId, ref: "User" }]
 }, {timestamps: true, autoCreate: true})
 

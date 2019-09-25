@@ -10,6 +10,7 @@ app.use(bodyParser.json())
 app.set('view engine', 'pug')
 app.set('views', './views')
 app.use(cookieParser())
+const allowAccessIp = process.env.ALLOW_ACCESS_IP
 
 app.use('/', require('./routes/index.route'))
 app.use('/user/', require('./routes/user.route'))
@@ -24,7 +25,7 @@ app.use('/comment/', require('./routes/comment.route'))
 
 
 app.use(function (_req, res, next) {
-    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Origin", allowAccessIp);
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
     next();
 });

@@ -3,7 +3,7 @@ const winston = require('winston')
 const app = require('./app')
 require('dotenv').config()
 const database = require('./database/database')
-const { PORT, HOST } = require('./helpers/utility.js')
+const { PORT, HOST } = process.env
 
 const server = http.createServer(app)
 
