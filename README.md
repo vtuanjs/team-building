@@ -1,3 +1,5 @@
+# CLOSED - SEE NEW HERE https://github.com/vantuan1303/TeamBuildingFrontend
+
 # Team Building v1
 
 Đây là backend phần mềm dành cho doanh nghiệp, giúp quản lí tiến độ công việc.
