@@ -1,4 +1,4 @@
-# CLOSED - SEE NEW HERE https://github.com/vantuan1303/TeamBuildingFrontend
+# CLOSED - SEE NEW HERE https://github.com/vantuan1303/TeamBuildingv2.0
 
 # Team Building v1
 
